@@ -3,17 +3,19 @@
 class OpenPaAlbotelematicoHelper extends AlbotelematicoHelperBase implements AlbotelematicoHelperInterface
 {
     private static $xmlComuni;
+    public $feed;
     
     public function loadData()
     {
-        $comuni = (array) $this->getRequestComuni();
+        //$comuni = (array) $this->getRequestComuni();
+        $comuni = (array) explode( ';', $this->arguments['comune'] );
         $this->dataCount = 0;
         $this->data = false;
         foreach( $comuni as $comune )
         {
-            $feedComune = str_replace( " ", "-", strtolower( $comune ) );
+            $feedComune = str_replace( " ", "-", strtolower( $comune ) );            
             $feedPath = str_replace( "---", $feedComune, $this->options['FeedBase'] );
-
+            $this->feed[] = $feedPath;
             if ( eZHTTPTool::getDataByUrl( $feedPath, true ) )
             {
                 $xmlOptions = new SQLIXMLOptions( array( 'xml_path' => $feedPath,
@@ -23,7 +25,7 @@ class OpenPaAlbotelematicoHelper extends AlbotelematicoHelperBase implements Alb
                 $this->dataCount += (int) $parsed->atti->numero_atti;
                 if ( $this->data instanceof SimpleXMLElement )
                 {
-                    self::append_simplexml( $xml, $parsed->atti );
+                    self::append_simplexml( $this->data, $parsed->atti );
                 }
                 else
                 {
@@ -32,9 +34,9 @@ class OpenPaAlbotelematicoHelper extends AlbotelematicoHelperBase implements Alb
             }
             else
             {
-                throw new AlboFatalException( 'Url non risolto: ' . $feedPath, __METHOD__);
+                throw new AlboFatalException( 'Url non risolto: ' . $feedPath );
             }
-        }
+        }        
     }
 
     public function availableArguments()
@@ -43,14 +45,15 @@ class OpenPaAlbotelematicoHelper extends AlbotelematicoHelperBase implements Alb
             'comune' => true,
             'field' => false,
             'value' => false,
+            'test' => false
         );
     }
 
     public function filterRow()
-    {
-        if ( isset( $this->options['field'] ) && isset( $this->options['value'] ) )
+    {        
+        if ( isset( $this->arguments['field'] ) && isset( $this->arguments['value'] ) )
         {
-            return ( (string) $this->row->{$this->options['field']} == $this->options['value'] );
+            return ( (string) $this->row->{$this->arguments['field']} == $this->arguments['value'] );
         }
         else
             return true;
@@ -69,7 +72,7 @@ class OpenPaAlbotelematicoHelper extends AlbotelematicoHelperBase implements Alb
                 $this->classIdentifier = key( $classes );
                 if ( !eZContentClass::fetchByIdentifier( $this->classIdentifier ) )
                 {
-                    throw new AlboFatalException( "Classe {$this->classIdentifier} non installata", __METHOD__);
+                    throw new AlboFatalException( "Classe {$this->classIdentifier} non installata" );
                 }
             }
             else
@@ -80,7 +83,7 @@ class OpenPaAlbotelematicoHelper extends AlbotelematicoHelperBase implements Alb
 
         if ( !$this->classIdentifier )
         {
-            throw new AlboFatalException( 'Non trovo la classe per ' . $key, __METHOD__);
+            throw new AlboFatalException( 'Non trovo la classe per ' . $key );
         }
         return $this->classIdentifier;
     }
@@ -103,9 +106,11 @@ class OpenPaAlbotelematicoHelper extends AlbotelematicoHelperBase implements Alb
             }
         }
 
+        $perContoDi = false;
         //@todo pubblicaNto????
-        if( !empty( $this->row->pubblicato_per_conto_di ) )
+        if( !empty( $this->row->pubblicanto_per_conto_di ) )
         {
+            $perContoDi = '(per conto di ' . $this->row->pubblicanto_per_conto_di . ')';
             $this->locations = array();
             if( isset( $defaultLocations['Per conto di'][0]['node_ids'] ) )
             {
@@ -123,7 +128,7 @@ class OpenPaAlbotelematicoHelper extends AlbotelematicoHelperBase implements Alb
 
         if ( empty( $this->locations ) )
         {
-            throw new AlboFatalException( 'Non trovo la collocazione per ' . $key, __METHOD__);
+            throw new AlboFatalException( 'Non trovo la collocazione per ' . $key . ' ' . $perContoDi );
         }
         return $this->locations;
     }
@@ -220,7 +225,7 @@ class OpenPaAlbotelematicoHelper extends AlbotelematicoHelperBase implements Alb
         {
             if ( is_null( self::$xmlComuni ) )
             {
-                $xmlComuniPath = eZSys::rootDir() . eZSys::fileSeparator() . $this->options['SourceComuni'];
+                $xmlComuniPath = eZSys::rootDir() . eZSys::fileSeparator() . $this->options['SourceComuni'];                
                 $comuniXmlOptions = new SQLIXMLOptions( array( 'xml_path' => $xmlComuniPath,
                                                                'xml_parser' => 'simplexml' ) );
                 $comuniXml = new SQLIXMLParser( $comuniXmlOptions );

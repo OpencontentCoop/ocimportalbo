@@ -9,14 +9,29 @@ class OCIniToolAlbotelematico implements OCIniToolInterface
 
     public function run()
     {
-        $this->helper = new OpenPaAlbotelematicoHelper();
-        $this->locations = $this->helper->getDefaultLocations();
-        $http = eZHTTPTool::instance();
-        if( $http->hasPostVariable( 'test' ) )
+        try
         {
-            try
+            $helperClass = eZINI::instance( 'alboimporthandler.ini' )->variable( 'HelperSettings', 'HelperClass' );
+            if ( class_exists( $helperClass ) )
+            {
+                $this->helper = new $helperClass();
+            }
+            else
+            {
+                throw new Exception( "Classe helper non trovata" );
+            }
+    
+            if ( !$this->helper instanceof AlbotelematicoHelperInterface )
+            {
+                throw new Exception( "$helperClass non implementa l'interfaccia corretta" );
+            }
+            
+            $this->locations = $this->helper->getDefaultLocations();
+            $http = eZHTTPTool::instance();
+            if( $http->hasPostVariable( 'test' ) )
             {
                 $rawText = $http->postVariable( 'test' );
+                $this->xml = trim( $rawText );
                 $row = new SimpleXMLElement( $rawText );
                 $options = eZINI::instance( 'sqliimport.ini' )->group( 'alboimporthandler-HandlerSettings' );
                 $this->helper->loadArguments( array( 'comune' => 'test' ), $options );
@@ -24,15 +39,12 @@ class OCIniToolAlbotelematico implements OCIniToolInterface
 
                 $this->test['classIdentifier'] = $this->helper->getClassIdentifier();
                 $this->test['locations'] = $this->helper->getLocations();
-                $this->test['values'] = $this->helper->attributesMap();
-                $this->xml = trim( $rawText );
-
-
+                $this->test['values'] = $this->helper->attributesMap();                
             }
-            catch( Exception $e )
-            {
-                $this->test = $e->getMessage();
-            }
+        }
+        catch( Exception $e )
+        {
+            $this->test = $e->getMessage();
         }
     }
 

@@ -1,5 +1,5 @@
 <?php
-//  php extension/sqliimport/bin/php/sqlidoimport.php --source-handlers="alboimporthandler" -scomunetest_backend --options="alboimporthandler::comune=stenico" -d
+//  php extension/sqliimport/bin/php/sqlidoimport.php --source-handlers="alboimporthandler" -sprototipo_backend --options="alboimporthandler::comune=stenico" -d
 /*
 <atto>
     <id_atto>67347</id_atto>
@@ -49,14 +49,14 @@ class AlboImportHandler extends SQLIImportAbstractHandler implements ISQLIImport
     {	
         //@todo controllare che il RobotUser definito in ini abbia permessi adeguati
 
-        $helperClass = $this->handlerConfArray['HelperClass'];
+        $helperClass = eZINI::instance( 'alboimporthandler.ini' )->variable( 'HelperSettings', 'HelperClass' );
         if ( class_exists( $helperClass ) )
         {
             $this->helper = new $helperClass();
         }
         else
         {
-            throw new Exception( "$helperClass non trovata" );
+            throw new Exception( "Classe helper non trovata" );
         }
 
         if ( !$this->helper instanceof AlbotelematicoHelperInterface )
@@ -64,10 +64,15 @@ class AlboImportHandler extends SQLIImportAbstractHandler implements ISQLIImport
             throw new Exception( "$helperClass non implementa l'interfaccia corretta" );
         }
 
-        $this->helper->loadArguments( $this->options, $this->handlerConfArray );
-        $this->cli->output( 'Carico i dati per ' . implode( $this->helper->getArgument( 'comuni' ) ) );
+        $this->helper->loadArguments( $this->options, $this->handlerConfArray );    
 
         $this->helper->loadData();
+        
+        if ( $this->helper->hasArgument( 'test' ) )
+        {
+            $this->helper->test();            
+        }
+        
         $this->dataSource = $this->helper->getData();
         $this->cli->output( $this->helper->getDataCount() . ' atti caricati' );
     }
@@ -107,11 +112,17 @@ class AlboImportHandler extends SQLIImportAbstractHandler implements ISQLIImport
         try
         {
             $this->helper->setCurrentRow( $row );
-
+            
             if ( !$this->helper->filterRow() )
-            {
+            {                
                 return;
             }
+            
+            if ( $this->helper->hasArgument( 'test' ) )
+            {
+                $this->helper->test();            
+            }
+            
             $this->currentGUID = (string) $row->id_atto;
             $this->currentEnte = (string) $row->desc_ente;
             $this->currentTipoAtto = (string) $row->tipo_atto;
@@ -134,23 +145,31 @@ class AlboImportHandler extends SQLIImportAbstractHandler implements ISQLIImport
             {
                 $content->addLocation( SQLILocation::fromNodeID( $location ) );
             }
+            
+            $contentObject = $content->getRawContentObject();
+            if ( $contentObject->attribute( 'published' ) !==  $values['data_pubblicazione'] )
+            {
+                $contentObject->setAttribute( 'published', $values['data_pubblicazione'] );
+                $contentObject->store();
+            }
+            
             $publisher = SQLIContentPublisher::getInstance();
             $publisher->publish( $content );
-
-            $contentObject = $content->getRawContentObject();
-            $contentObject->setAttribute( 'published', $values['data_pubblicazione'] );
-            $contentObject->store();
+            
+            $this->helper->registerImport( $contentObject );
             unset( $content );
         }
         catch( AlboFatalException $e )
         {
-            //manda una mail
+            //@todo manda una mail
             $this->helper->rollback();
+            $this->cli->error( $e->getMessage() );
+            $this->helper->registerError( $e->getMessage() );        
         }
         catch( Exception $e )
-        {
-            //errore interno
+        {            
             $this->helper->rollback();
+            $this->helper->registerError( $e->getMessage() );        
         }
 
         return;
@@ -173,58 +192,5 @@ class AlboImportHandler extends SQLIImportAbstractHandler implements ISQLIImport
 
     public function getProgressionNotes()
     {
-    }
-
-
-    private function uploadCorpo( $xmlfield )
-    {
-        $path = (string) $xmlfield;
-        return $this->uploadFile( $path, $this->currentName, $this->ricavaCollocazioneAllegato( 'file' ) );
-    }
-
-    private function uploadAllegati( $xmlfield )
-    {
-        $ids = array();        
-        if ( is_a( $xmlfield, 'SimpleXMLElement') )
-        {
-            foreach ($xmlfield->children() as $allegato)
-            {
-                $ids[] = $this->uploadFile(
-                    'allegati/' . $allegato->url,
-                    $this->currentName . '-' . $allegato->titolo,
-                    $this->ricavaCollocazioneAllegato( 'file' )
-                );
-            }
-        }        
-        return implode( '-', $ids );
-    }
-
-    private function hasAllegati( $xmlfield )
-    {
-        $data = array();
-        if ( is_a( $xmlfield, 'SimpleXMLElement') )
-        {
-            foreach ($xmlfield->children() as $allegato )
-            {
-                $data[] = array(
-                    'titolo' => (string) $allegato->titolo,
-                    'url' => (string) $allegato->url,
-                );
-            }
-        }
-        return empty( $data ) ? false : true;
-    }
-    
-    private function disambiguaCompetenzaDeliberazione( $string )
-    {
-        //Delibere della Giunta del 28/04/2011        
-        foreach( $this->competenze as $slug => $competenza )
-        {
-            if ( stripos( $string, $slug ) !== false )
-            {
-                return $competenza;
-            }
-        }
-        return false;  
-    }   
+    }    
 }
