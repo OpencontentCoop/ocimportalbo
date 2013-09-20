@@ -3,7 +3,7 @@
 class OCIniToolAlbotelematico implements OCIniToolInterface
 {
     public $locations;
-    public $test = null;
+    public $test = false;
 
     public function run()
     {
@@ -14,7 +14,15 @@ class OCIniToolAlbotelematico implements OCIniToolInterface
         {
             try
             {
-                $this->test = new SimpleXMLElement( $http->postVariable( 'test' ) );
+                $row = new SimpleXMLElement( $http->postVariable( 'test' ) );
+                $options = eZINI::instance( 'sqlimport.ini' )->group( 'alboimporthandler-HandlerSettings' );
+                $helper->loadArguments( array(), $options );
+                $this->helper->setCurrentRow( $row );
+
+                $this->test['classIdentifier'] = $this->helper->getClassIdentifier();
+                $this->test['locations'] = $this->helper->getLocations();
+                $this->test['values'] = $this->helper->prepareValues();
+
             }
             catch( Exception $e )
             {

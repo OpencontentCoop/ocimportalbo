@@ -259,4 +259,9 @@ class AlbotelematicoHelperBase
 
     }
 
+    function test( $row )
+    {
+
+    }
+
 }

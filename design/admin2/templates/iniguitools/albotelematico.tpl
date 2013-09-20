@@ -38,7 +38,18 @@
 </table>
 
 <h2>Test</h2>
+
 <form method="post" action={'inigui/tools/albolocation'|ezurl()}>
-    <textarea name="test"></textarea>
-    <input class="button" type="submit" value="Test" />
+    <textarea class="box" name="test"></textarea>
+    <div class="block">
+        <input class="button" type="submit" value="Test" />
+    </div>
 </form>
+
+{if $test}
+    {if is_array( $test )}
+        {$test|attribute(show,4)}
+    {else}
+        <h4>{$test}</h4>
+    {/if}
+{/if}
