@@ -201,9 +201,9 @@ class AlbotelematicoHelperBase
         $baseUrl = str_replace( "ANNO", $this->values['anno'], $baseUrl );
 
         $this->values['url'] = $baseUrl . $this->values['url'];
-        foreach( $this->values['allegati'] as $allegato )
+        foreach( $this->values['allegati'] as $i => $item )
         {
-            $allegato['url'] = $baseUrl . $allegato['url'];
+            $this->values['allegati'][$i]['url'] = $baseUrl . $item['url'];
         }
 
         return $this->values;
