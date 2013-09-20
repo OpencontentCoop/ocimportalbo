@@ -19,7 +19,7 @@ class AlbotelematicoHelperBase
     public function __construct()
     {
         $this->ini = eZINI::instance( 'alboimporthandler.ini' );
-        $this->tempVarDir = $this->ini->variable( 'FileSettings','VarDir' ) . '/import/';
+        $this->tempVarDir = eZINI::instance()->variable( 'FileSettings','VarDir' ) . '/import/';
     }
     
     public function loadArguments( $arguments, $options )

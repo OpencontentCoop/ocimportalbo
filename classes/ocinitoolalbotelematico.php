@@ -24,7 +24,7 @@ class OCIniToolAlbotelematico implements OCIniToolInterface
 
                 $this->test['classIdentifier'] = $this->helper->getClassIdentifier();
                 $this->test['locations'] = $this->helper->getLocations();
-                $this->test['values'] = $this->helper->prepareValues();
+                $this->test['values'] = $this->helper->attributesMap();
                 $this->xml = trim( $rawText );
 
 
