@@ -125,6 +125,7 @@ class OpenPaAlbotelematicoHelper extends AlbotelematicoHelperBase implements Alb
         {
             throw new AlboFatalException( 'Non trovo la collocazione per ' . $key, __METHOD__);
         }
+        return $this->locations;
     }
 
     /*

@@ -4,6 +4,7 @@ class OCIniToolAlbotelematico implements OCIniToolInterface
 {
     public $locations;
     public $test = false;
+    public $xml = false;
     public $helper = null;
 
     public function run()
@@ -24,7 +25,7 @@ class OCIniToolAlbotelematico implements OCIniToolInterface
                 $this->test['classIdentifier'] = $this->helper->getClassIdentifier();
                 $this->test['locations'] = $this->helper->getLocations();
                 $this->test['values'] = $this->helper->prepareValues();
-                $this->test['text'] = $rawText;
+                $this->xml = trim( $rawText );
 
 
             }
@@ -45,6 +46,7 @@ class OCIniToolAlbotelematico implements OCIniToolInterface
         $tpl = eZTemplate::factory();
         $tpl->setVariable( 'location_hash', $this->locations );
         $tpl->setVariable( 'test', $this->test );
+        $tpl->setVariable( 'xml', $this->xml );
         $Result = array();
         $tpl->setVariable( 'page_title', 'Collocazioni Albotelematico' );
         $Result['path'] = array( array( 'text' => 'Collocazioni Albotelematico', 'url' => false ) );

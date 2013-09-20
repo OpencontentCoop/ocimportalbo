@@ -40,11 +40,7 @@
 <h2>Test</h2>
 
 <form method="post" action={'inigui/tools/albolocation'|ezurl()}>
-    <textarea class="box" name="test">
-        {if is_array($test)}
-            {$test.text}
-        {/if}
-    </textarea>
+    <textarea rows="20" class="box" name="test">{if $xml}{$xml}{/if}</textarea>
     <div class="block">
         <input class="button" type="submit" value="Test" />
     </div>
