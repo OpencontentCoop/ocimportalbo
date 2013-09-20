@@ -184,8 +184,8 @@ class AlbotelematicoHelperBase
                     {
                         foreach ( $value->children() as $allegato )
                         {
-                            $this->values['allegati'] = array( 'url' => 'allegati/' . $allegato->url,
-                                                        'name' => (string) $allegato->titolo );
+                            $this->values['allegati'][] = array( 'url' => 'allegati/' . $allegato->url,
+                                                                 'name' => (string) $allegato->titolo );
                         }
                     }
                 } break;
