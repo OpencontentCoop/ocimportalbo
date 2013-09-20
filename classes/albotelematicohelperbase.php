@@ -48,7 +48,7 @@ class AlbotelematicoHelperBase
         return $this->dataCount;
     }
 
-    protected function validateArguments()
+    public function validateArguments()
     {
         foreach( $this->availableArguments() as $argument => $isRequired )
         {
