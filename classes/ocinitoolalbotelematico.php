@@ -4,10 +4,11 @@ class OCIniToolAlbotelematico implements OCIniToolInterface
 {
     public $locations;
     public $test = false;
+    public $helper = null;
 
     public function run()
     {
-        $helper = new OpenPaAlbotelematicoHelper();
+        $this->helper = new OpenPaAlbotelematicoHelper();
         $this->locations = $helper->getDefaultLocations();
         $http = eZHTTPTool::instance();
         if( $http->hasPostVariable( 'test' ) )
@@ -16,7 +17,7 @@ class OCIniToolAlbotelematico implements OCIniToolInterface
             {
                 $row = new SimpleXMLElement( $http->postVariable( 'test' ) );
                 $options = eZINI::instance( 'sqlimport.ini' )->group( 'alboimporthandler-HandlerSettings' );
-                $helper->loadArguments( array( 'comune' => 'test' ), $options );
+                $this->helper->loadArguments( array( 'comune' => 'test' ), $options );
                 $this->helper->setCurrentRow( $row );
 
                 $this->test['classIdentifier'] = $this->helper->getClassIdentifier();
