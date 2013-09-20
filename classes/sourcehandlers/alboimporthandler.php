@@ -113,7 +113,7 @@ class AlboImportHandler extends SQLIImportAbstractHandler implements ISQLIImport
         {
             $this->helper->setCurrentRow( $row );
             
-            if ( !$this->helper->filterRow() )
+            if ( !$this->helper->canProcessRow() )
             {                
                 return;
             }
@@ -129,17 +129,10 @@ class AlboImportHandler extends SQLIImportAbstractHandler implements ISQLIImport
 
             $this->currentName = $this->currentEnte . ' ' . $this->currentTipoAtto . ' ' . $this->currentGUID;
 
-            $classIdentifier = $this->helper->getClassIdentifier();
-            $locations = $this->helper->getLocations();
-            $values = $this->helper->prepareValues();
-
-            $contentOptions = new SQLIContentOptions( array(
-                'class_identifier'      => $classIdentifier,
-                'remote_id'             => md5( $this->currentGUID )
-            ) );
-
-            $content = SQLIContent::create( $contentOptions );
-            $this->helper->fillContent( $content );
+            $classIdentifier = $this->helper->getClassIdentifier();            
+            $values = $this->helper->prepareValues();            
+            
+            $content = $this->helper->fillContent();
 
             foreach( $locations as $location )
             {

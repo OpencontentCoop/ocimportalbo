@@ -79,6 +79,44 @@ class AlbotelematicoHelperBase
         $this->values = null;
         $this->mapAttributes = array();
     }
+    
+    public function isImported()
+    {        
+        return $this->getCurrentObject() instanceof eZContentObject;        
+    }
+    
+    public function getCurrentObject()
+    {
+        $imported = false;
+        if ( $this->isImported() )
+        {
+            $remoteID = $this->getRemoteID();
+            $imported = eZContentObject::fetchByRemoteID( $remoteID );
+        }
+        return $imported;
+    }
+    
+    public function canProcessRow()
+    {                                        
+        if ( $this->hasArgument( 'clean' ) )
+        {
+            if ( $this->isImported() )
+            {
+                eZContentObjectOperations::remove( $this->getCurrentObject()->attribute( 'contentobject_id' ) );
+            }
+            return false;
+        }
+        $process = true;
+        if ( $this->isImported() && !$this->hasArgument( 'update' ) )
+        {
+            $process = false;
+        }
+        if ( isset( $this->arguments['field'] ) && isset( $this->arguments['value'] ) )
+        {
+            $process = ( (string) $this->row->{$this->arguments['field']} == $this->arguments['value'] );
+        }
+        return $process;
+    }
 
     public static function append_simplexml( SimpleXMLElement &$simplexml_to, SimpleXMLElement &$simplexml_from )
     {
@@ -326,8 +364,15 @@ class AlbotelematicoHelperBase
         return $this->mapAttributes;
     }
 
-    function fillContent( SQLIContent $content )
+    function fillContent()
     {
+        $contentOptions = new SQLIContentOptions( array(
+            'class_identifier'      => $this->getClassIdentifier(),
+            'remote_id'             => $this->getRemoteID()
+        ) );
+
+        $content = SQLIContent::create( $contentOptions );
+        
         if ( $this->mapAttributes == null )
         {
             $this->attributesMap();
@@ -338,7 +383,7 @@ class AlbotelematicoHelperBase
             {
                 if ( isset( $this->mapAttributes[$attributeIdentifier] ) )
                 {
-                    $attributeContent = $this->mapAttributes[$attributeIdentifier];
+                    $attributeContent = $this->washValue( $this->mapAttributes[$attributeIdentifier] );
                     switch( $attribute->attribute( 'data_type_string' ) )
                     {
                         case 'ezbinaryfile':
@@ -372,7 +417,19 @@ class AlbotelematicoHelperBase
                     $content->fields->{$attributeIdentifier} = $attributeContent;
                 }            
             }            
-        }        
+        }
+        return $content;
+    }
+    
+    function washValue( $value )
+    {
+        if( is_string( $value ) )
+        {
+            // importando gli atti della comunità rotaliana compaiono queste entities
+            $value = str_replace( '&#00246;', 'ö', $value );
+            $value = str_replace( '&#00224;','à', $value );
+        }
+        return $value;
     }
     
     function tempFile( $url )

@@ -15,7 +15,7 @@ class OpenPaAlbotelematicoHelper extends AlbotelematicoHelperBase implements Alb
         {
             $feedComune = str_replace( " ", "-", strtolower( $comune ) );            
             $feedPath = str_replace( "---", $feedComune, $this->options['FeedBase'] );
-            $this->feed[] = $feedPath;
+            $this->feed[] = $feedPath . ': ' . var_export( eZHTTPTool::getDataByUrl( $feedPath, true ), 1 );
             if ( eZHTTPTool::getDataByUrl( $feedPath, true ) )
             {
                 $xmlOptions = new SQLIXMLOptions( array( 'xml_path' => $feedPath,
@@ -38,6 +38,12 @@ class OpenPaAlbotelematicoHelper extends AlbotelematicoHelperBase implements Alb
             }
         }        
     }
+    
+    public function getRemoteID()
+    {
+        $id = (string) $row->id_atto;
+        return md5( $id );
+    }
 
     public function availableArguments()
     {
@@ -48,17 +54,7 @@ class OpenPaAlbotelematicoHelper extends AlbotelematicoHelperBase implements Alb
             'test' => false
         );
     }
-
-    public function filterRow()
-    {        
-        if ( isset( $this->arguments['field'] ) && isset( $this->arguments['value'] ) )
-        {
-            return ( (string) $this->row->{$this->arguments['field']} == $this->arguments['value'] );
-        }
-        else
-            return true;
-    }
-
+    
     public function getClassIdentifier()
     {
         $defaultLocations = $this->getDefaultLocations();
@@ -69,11 +65,7 @@ class OpenPaAlbotelematicoHelper extends AlbotelematicoHelperBase implements Alb
             $classes = $defaultLocations[$key];
             if ( count( $classes ) == 1 )
             {
-                $this->classIdentifier = key( $classes );
-                if ( !eZContentClass::fetchByIdentifier( $this->classIdentifier ) )
-                {
-                    throw new AlboFatalException( "Classe {$this->classIdentifier} non installata" );
-                }
+                $this->classIdentifier = key( $classes );                
             }
             else
             {
@@ -85,6 +77,12 @@ class OpenPaAlbotelematicoHelper extends AlbotelematicoHelperBase implements Alb
         {
             throw new AlboFatalException( 'Non trovo la classe per ' . $key );
         }
+        
+        if ( !eZContentClass::fetchByIdentifier( $this->classIdentifier ) )
+        {
+            throw new AlboFatalException( "Classe {$this->classIdentifier} non installata" );
+        }
+        
         return $this->classIdentifier;
     }
 
@@ -239,7 +237,7 @@ class OpenPaAlbotelematicoHelper extends AlbotelematicoHelperBase implements Alb
                 {
                     if ( strtolower( $request ) == strtolower( $comune->name ) )
                     {
-                        $response[] = $comune->name;
+                        $response[] = (string) $comune->name;
                     }
                 }
             }

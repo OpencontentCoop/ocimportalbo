@@ -11,6 +11,11 @@ interface AlbotelematicoHelperInterface
      * Restituisce il valore dell'argomento passato o un'eccezione
      */
     function getArgument( $name );
+    
+    /*
+     * Restituisce true esiste argomento passato
+     */
+    function hasArgument( $name );
 
     /*
      * Carica i valori da remoto
@@ -35,7 +40,7 @@ interface AlbotelematicoHelperInterface
     /*
      * Filtra la riga. Se ritorna false la riga NON viene processata
      */
-    function filterRow();
+    function canProcessRow();
 
     /*
      * Ricava le collocazioni
@@ -65,11 +70,26 @@ interface AlbotelematicoHelperInterface
     /*
      * popola l'oggetto
      */
-    function fillContent( SQLIContent $content );
+    function fillContent();
 
     /*
      * torna indietro se sbaglia qualcosa
      */
     function rollback();
+    
+    /*
+     * torna indietro se sbaglia qualcosa
+     */
+    function test();
+    
+    /*
+     * Registra il contenuto importato
+     */
+    function registerImport();
+    
+    /*
+     * REgistra errore
+     */
+    function registerError();
 
 }
