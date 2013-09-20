@@ -165,7 +165,7 @@ class AlbotelematicoHelperBase
                 case 'data_pubblicazione':
                 case 'data_termine':
                 {
-                    $date = DateTime::createFromFormat( "D/m/Y", (string) $value );
+                    $date = DateTime::createFromFormat( "d/m/Y", (string) $value );
                     if ( !$date instanceof DateTime )
                     {
                         throw new AlboFatalException( "$value non è una data" );

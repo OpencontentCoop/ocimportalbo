@@ -15,7 +15,8 @@ class OCIniToolAlbotelematico implements OCIniToolInterface
         {
             try
             {
-                $row = new SimpleXMLElement( $http->postVariable( 'test' ) );
+                $rawText = $http->postVariable( 'test' );
+                $row = new SimpleXMLElement( $rawText );
                 $options = eZINI::instance( 'sqlimport.ini' )->group( 'alboimporthandler-HandlerSettings' );
                 $this->helper->loadArguments( array( 'comune' => 'test' ), $options );
                 $this->helper->setCurrentRow( $row );
@@ -23,6 +24,8 @@ class OCIniToolAlbotelematico implements OCIniToolInterface
                 $this->test['classIdentifier'] = $this->helper->getClassIdentifier();
                 $this->test['locations'] = $this->helper->getLocations();
                 $this->test['values'] = $this->helper->prepareValues();
+                $this->test['text'] = $rawText;
+
 
             }
             catch( Exception $e )
