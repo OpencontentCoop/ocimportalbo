@@ -9,7 +9,7 @@ class OCIniToolAlbotelematico implements OCIniToolInterface
     public function run()
     {
         $this->helper = new OpenPaAlbotelematicoHelper();
-        $this->locations = $helper->getDefaultLocations();
+        $this->locations = $this->helper->getDefaultLocations();
         $http = eZHTTPTool::instance();
         if( $http->hasPostVariable( 'test' ) )
         {
