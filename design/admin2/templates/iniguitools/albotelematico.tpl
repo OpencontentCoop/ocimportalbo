@@ -37,7 +37,9 @@
                     {undef $classObject}
                 </td>
                 <td>
+                    {if $location.type}
                     <small>configurato come {$location.type}</small><br />
+                    {/if}
                     <ul>
                     {foreach $location.node_ids as $node_id}
                         <li>

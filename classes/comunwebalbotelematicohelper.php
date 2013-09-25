@@ -6,9 +6,10 @@ class ComunWebAlbotelematicoHelper extends AlbotelematicoHelperBase implements A
     public $feed;
     public $comunitaID;
     public $comuni = array();
-    public $tools;
-    public $storageLocation;
+    public $tools;    
     public $defaultLocation;
+    public $cacheComuni = array();
+    public $storageLocation;
     
     public function getTools()
     {
@@ -132,12 +133,10 @@ class ComunWebAlbotelematicoHelper extends AlbotelematicoHelperBase implements A
         
         return $this->classIdentifier;
     }
-
-    public function getLocations()
-    {        
-        $this->locations = array();
-        
-        if ( $this->comunitaID == null && $this->getTools()->ricavaComunitaDaComune( $this->row->desc_ente, true ) )
+    
+    public function getStorageLocation( $asObject = false )
+    {
+        if ( $this->comunitaID == null && $this->row !== null && $this->getTools()->ricavaComunitaDaComune( $this->row->desc_ente, true ) )
         {
             $this->comunitaID = $this->getTools()->ricavaComunitaDaComune( $this->row->desc_ente );
             if ( !eZContentObject::fetch( $this->comunitaID ) )
@@ -145,12 +144,66 @@ class ComunWebAlbotelematicoHelper extends AlbotelematicoHelperBase implements A
                 throw new AlboFatalException( 'Comunita di ' . $this->row->desc_ente  . ' non trovata' );
             }
         }
+        $this->storageLocation = $this->getTools()->ricavaStorageComunita( $this->comunitaID );
+        $storageLocationNode = eZContentObjectTreeNode::fetch( $this->storageLocation );
+        if ( !$storageLocationNode instanceOf eZContentObjectTreeNode )
+        {
+            throw new AlboFatalException( 'Storage non trovato' );
+        }
+        if ( $asObject )
+            return $storageLocationNode;
+        else
+            return $this->storageLocation;
+    }
+
+    public function getLocations()
+    {        
+        $this->locations = array();
         $this->fileLocation = $this->getFileLocationComunita();
-        $this->defaultLocation = $this->options['DefaultParentNodeID'];
-        $this->storageLocation = $this->tools->ricavaStorageComunita( $this->comunitaID );
+        $key = (string) $this->row->tipo_atto;
+        $defaultLocations = $this->getDefaultLocations();
         
+        $baseLocation = $this->options['DefaultParentNodeID'];
+        $storageLocation = $this->getStorageLocation();
         
-        return $this->locations;
+        if ( isset( $defaultLocations[$key][$this->classIdentifier]['node_ids'] ) )
+        {
+            $nodes = $defaultLocations[$key][$this->classIdentifier]['node_ids'];
+            if ( count( $nodes ) == 1 )
+            {
+                $this->locations[] = $nodes[0];
+            }
+            else
+            {
+                $this->locations[] = $this->valueDisambiguation( 'location', $nodes );
+            }
+        }
+        
+        $perContoDi = false;
+        //@todo pubblicaNto????
+        if( !empty( $this->row->pubblicanto_per_conto_di ) )
+        {
+            $perContoDi = '(per conto di ' . $this->row->pubblicanto_per_conto_di . ')';
+            $this->locations = array();
+            if( isset( $defaultLocations['Per conto di'][0]['node_ids'] ) )
+            {
+                $this->locations[] = $defaultLocations['Per conto di'][0]['node_ids'][0];
+            }
+        }
+        
+        foreach( $this->locations as $i => $location )
+        {
+            if ( !eZContentObjectTreeNode::fetch( $location ) )
+            {
+                unset( $this->locations[$i] );
+            }
+        }
+
+        if ( empty( $this->locations ) )
+        {
+            throw new AlboFatalException( 'Non trovo la collocazione per ' . $key . ' ' . $perContoDi );
+        }
+        return $this->locations;        
     }
 
     /*
@@ -158,59 +211,53 @@ class ComunWebAlbotelematicoHelper extends AlbotelematicoHelperBase implements A
      *  array( 'Nome classe in albo' => array(
      *          'identifier di ez' => array(        //se maggiore di 1 da disambiguare vedi AlbotelematicoHelperBase::valueDisambiguation
      *              'node_ids' => array( 1, 2 ),    //se maggiore di 1 da disambiguare vedi AlbotelematicoHelperBase::valueDisambiguation
-     *              'type' => path|node|sitedata    // in base a dove recupera il valore definitivo
+     *              'type' => default|entilocali    // in base a dove recupera il valore definitivo
      *          )
      *  )
      */
     public function getDefaultLocations()
     {
         $classMaps = (array) $this->ini->variable( 'MapClassSettings', 'MapClass' );
-        $locations = array();
+        $iniLocations = eZINI::instance( 'entilocali.ini' )->hasVariable( 'LocationsPerClasses', 'Storage_' . $this->getStorageLocation() ) ?
+            eZINI::instance( 'entilocali.ini' )->variable( 'LocationsPerClasses', 'Storage_' . $this->getStorageLocation() ) :
+            array();
+        
+        $locationPerClasses = array();
+        foreach( $iniLocations as $classAndNode )
+        {
+            $classAndNode = explode( ';', $classAndNode );            
+            $locationPerClasses[$classAndNode[1]] = explode( ',', $classAndNode[0] );
+        }
+        
+        $locations = array();        
         foreach( $classMaps as $alboClass => $classIdentifier )
         {
-            $classIdentifiersParts = explode( ';', $classIdentifier );
-            $classIdentifiers = explode( '|', $classIdentifiersParts[0] );
-            $parentNodes = array();
-            $parentPaths = array();
-
-            if ( $this->ini->hasVariable( 'ParentNodeSettings' , 'ParentNode' ) )
-            {
-                $parentLocation = $this->ini->variable( 'ParentNodeSettings' , 'ParentNode' );
-                if ( isset( $parentLocation[$alboClass] ) )
-                {
-                    $parentNodesParts = explode( ';', $parentLocation[$alboClass] );
-                    $parentNodes = explode( '|', $parentNodesParts[0] );
-                }
-            }
-
-            if ( $this->ini->hasVariable( 'ParentPathSettings' , 'ParentPath' ) )
-            {
-                $parentPath = $this->ini->variable( 'ParentPathSettings' , 'ParentPath' );
-                if ( isset( $parentPath[$alboClass] ) )
-                {
-                    $parentPathsParts = explode( ';', $parentPath[$alboClass] );
-                    $parentPaths = explode( '|', $parentPathsParts[0] );
-                }
-            }
-
+            $classIdentifiers = explode( ';', $classIdentifier );
+            
             foreach( $classIdentifiers as $class )
             {
+                $parentLocations = array();            
+                foreach( $locationPerClasses as $l => $c )
+                {
+                    if ( in_array( $class, $c ) )
+                    {
+                        $parentLocations = array( $l );
+                    }
+                }
+                
                 $nodes = array();
                 $type = false;
 
-                foreach( $parentNodes as $node )
+                foreach( $parentLocations as $node )
                 {
                     $nodes[] = eZContentObjectTreeNode::fetch( $node );
-                    $type = 'node';
+                    $type = 'entilocali.ini';
                 }
-
+                                
                 if ( count( $nodes ) == 0 )
                 {
-                    foreach( $parentPaths as $path )
-                    {
-                        $nodes[] = eZContentObjectTreeNode::fetchByURLPath( $path );
-                        $type = 'path';
-                    }
+                    $nodes[] = $this->getStorageLocation( true );
+                    $type = 'default';
                 }
 
                 foreach( $nodes as $index => $node )
@@ -230,34 +277,8 @@ class ComunWebAlbotelematicoHelper extends AlbotelematicoHelperBase implements A
             }
         }
         $locations['Per conto di'][0]['node_ids'] = isset( $parentLocation['PerContoDi'] ) ? array( $parentLocation['PerContoDi'] ) : array( 0 );
-        $locations['Per conto di'][0]['type'] = isset( $parentLocation['PerContoDi'] ) ? 'node' : '';
+        $locations['Per conto di'][0]['type'] = isset( $parentLocation['PerContoDi'] ) ? 'node' : '';        
         return $locations;
-    }
-
-    /*
-     * Parsa il file SourceComuni e restituisce i comuni richiesti
-     */
-    private function getRequestComuni()
-    {        
-        $response = array();
-        if ( $this->options['SourceComuni'] )
-        {
-            if ( is_null( self::$xmlComuni ) )
-            {
-                $xmlComuniPath = eZSys::rootDir() . eZSys::fileSeparator() . $this->options['SourceComuni'];                
-                $comuniXmlOptions = new SQLIXMLOptions( array( 'xml_path' => $xmlComuniPath,
-                                                               'xml_parser' => 'simplexml' ) );
-                $comuniXml = new SQLIXMLParser( $comuniXmlOptions );
-                self::$xmlComuni = $comuniXml->parse();
-            }
-
-            for( $i = 0; $i < count( self::$xmlComuni->comune ); $i++ )
-            {
-                $comune = self::$xmlComuni->comune[$i];                
-                $response[] = (string) $comune->name;
-            }
-        }        
-        return $response;
     }
     
     public function ricavaComunita( $string )

@@ -130,7 +130,8 @@ class AlboImportHandler extends SQLIImportAbstractHandler implements ISQLIImport
             $this->currentName = $this->currentEnte . ' ' . $this->currentTipoAtto . ' ' . $this->currentGUID;
 
             $classIdentifier = $this->helper->getClassIdentifier();            
-            $values = $this->helper->prepareValues();            
+            $values = $this->helper->prepareValues();
+            $locations = $this->helper->getLocations();
             
             $content = $this->helper->fillContent();
 

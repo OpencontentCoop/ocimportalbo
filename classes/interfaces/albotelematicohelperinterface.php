@@ -85,11 +85,11 @@ interface AlbotelematicoHelperInterface
     /*
      * Registra il contenuto importato
      */
-    function registerImport();
+    function registerImport( eZContentObject $object );
     
     /*
      * REgistra errore
      */
-    function registerError();
+    function registerError( $error );
 
 }
