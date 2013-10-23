@@ -1,5 +1,4 @@
 <?php
-//  php extension/sqliimport/bin/php/sqlidoimport.php --source-handlers="alboimporthandler" -sprototipo_backend --options="alboimporthandler::comune=stenico" -d
 /*
 <atto>
     <id_atto>67347</id_atto>
