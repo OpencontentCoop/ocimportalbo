@@ -41,7 +41,7 @@ class OpenPaAlbotelematicoHelper extends AlbotelematicoHelperBase implements Alb
     
     public function getRemoteID()
     {
-        $id = (string) $row->id_atto;
+        $id = (string) $this->row->id_atto;
         return md5( $id );
     }
 

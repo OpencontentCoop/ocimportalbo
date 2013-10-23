@@ -20,6 +20,7 @@ class AlbotelematicoHelperBase
     public $values;
     public $content;
     public $mapAttributes = array();
+    public $currentObject;
     
     public function __construct()
     {
@@ -79,7 +80,8 @@ class AlbotelematicoHelperBase
         $this->locations = null;
         $this->values = null;
         $this->mapAttributes = array();
-        $this->content = null;
+        unset( $this->content );
+        $this->currentObject = null;
     }
     
     public function getRemoteID()
@@ -95,21 +97,24 @@ class AlbotelematicoHelperBase
     
     public function getCurrentObject()
     {
-        $imported = false;
-        $remoteID = $this->getRemoteID();
-        $imported = eZContentObject::fetchByRemoteID( $remoteID );
-        return $imported;
+        if ( $this->currentObject == null )
+        {
+            $remoteID = $this->getRemoteID();
+            $this->currentObject = eZContentObject::fetchByRemoteID( $remoteID );        
+        }                
+        return $this->currentObject;
     }
     
-    public function canProcessRow()
+    public function canProcessRow( $row )
     {                                        
+        $this->setCurrentRow( $row );        
         if ( $this->hasArgument( 'clean' ) )
         {
             if ( $this->isImported() )
             {
                 $this->registerDelete( $this->getCurrentObject()->attribute( 'id' ), $this->getCurrentObject()->attribute( 'name' ) );
-                eZContentObjectOperations::remove( $this->getCurrentObject()->attribute( 'id' ) );
-            }
+                eZContentObjectOperations::remove( $this->getCurrentObject()->attribute( 'id' ) );                
+            }            
             return false;
         }
         $process = true;
@@ -566,7 +571,7 @@ class AlbotelematicoHelperBase
             }
             
             $fp = fopen( $this->tempLogDir . $logFileName, 'a+' );
-            fputcsv( $fp, array_values( $log ) );
+            fputcsv( $fp, array_values( $log ) );            
             fclose( $fp );
         }
     }

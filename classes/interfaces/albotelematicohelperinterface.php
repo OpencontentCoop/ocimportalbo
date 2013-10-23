@@ -40,7 +40,7 @@ interface AlbotelematicoHelperInterface
     /*
      * Filtra la riga. Se ritorna false la riga NON viene processata
      */
-    function canProcessRow();
+    function canProcessRow( $row );
 
     /*
      * Ricava le collocazioni

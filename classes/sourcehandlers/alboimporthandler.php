@@ -113,11 +113,9 @@ class AlboImportHandler extends SQLIImportAbstractHandler implements ISQLIImport
 
         try
         {
-            $this->helper->setCurrentRow( $row );
-            
-            if ( !$this->helper->canProcessRow() )
+            if ( !$this->helper->canProcessRow( $row  ) )
             {                
-                return;
+                return false;
             }
             
             if ( $this->helper->hasArgument( 'test' ) )
