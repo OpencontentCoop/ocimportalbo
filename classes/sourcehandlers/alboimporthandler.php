@@ -35,6 +35,8 @@ class AlboImportHandler extends SQLIImportAbstractHandler implements ISQLIImport
     private $rowCount;
     private $helper;
 
+    private $registerMail;
+    
     /**
      * Constructor
      */
@@ -134,43 +136,70 @@ class AlboImportHandler extends SQLIImportAbstractHandler implements ISQLIImport
             $locations = $this->helper->getLocations();
             
             $content = $this->helper->fillContent();
-
+            $this->helper->setPublishedTimestamp();
+            
             foreach( $locations as $location )
             {
                 $content->addLocation( SQLILocation::fromNodeID( $location ) );
-            }
-            
-            $contentObject = $content->getRawContentObject();
-            if ( $contentObject->attribute( 'published' ) !==  $values['data_pubblicazione'] )
-            {
-                $contentObject->setAttribute( 'published', $values['data_pubblicazione'] );
-                $contentObject->store();
-            }
+            }                    
             
             $publisher = SQLIContentPublisher::getInstance();
             $publisher->publish( $content );
             
-            $this->helper->registerImport( $contentObject );
+            $this->helper->registerImport();
             unset( $content );
         }
         catch( AlboFatalException $e )
-        {
-            //@todo manda una mail
+        {            
             $this->helper->rollback();
-            $this->cli->error( $e->getMessage() );
-            $this->helper->registerError( $e->getMessage() );        
+            $this->registerMail[] = array( 'row' => $row, 'message' => $e->getMessage() );
+            $this->helper->registerError( $e->getMessage() );
         }
         catch( Exception $e )
         {            
             $this->helper->rollback();
-            $this->helper->registerError( $e->getMessage() );        
+            $this->helper->registerError( $e->getMessage() );
         }
 
         return;
     }
+    
+    public function sendMail()
+    {
+        if ( count( $this->registerMail ) > 0 )
+        {
+            $mail = new eZMail();                                
+            $mail->setSender( eZINI::instance()->variable( 'MailSettings', 'AdminEmail' ) );
+            $mail->setReceiver( 'luca.realdi@opencontent.it' );
+            
+            $sitename = eZSys::hostname();
+            $arguments = var_export( $this->helper->arguments, 1 );
+            $options = var_export( $this->helper->options, 1 );
+            $feed = var_export( $this->helper->feed, 1 );        
+                    
+            $body = date( 'j/m/Y h:i' ) . "\n\n"
+                . "### Sorgente ###\n$feed\n\n"
+                . "### Argomenti ###\n$arguments\n\n"
+                . "### Opzioni ###\n$options\n\n";
+                
+            foreach( $this->registerMail as $i => $item )
+            {
+                $i++;
+                $row = var_export( $item['row'], 1 );
+                $body .= "{$i}) Errore: {$item['message']}\n\n### Riga ###\n{$row}\n\n";
+            }
+            
+            $errors = count($this->registerMail);
+            $mail->setSubject( "{$errors} errori {$this->getHandlerName()} in $sitename" );
+            $mail->setBody( $body );
+            eZMailTransport::send( $mail );
+        }
+    }
 
     public function cleanup()
     {
+        $this->helper->cleanup();
+        $this->sendMail();
         return;
     }
 

@@ -7,15 +7,18 @@
     </div>
 </form>
 
-{if $test}
-    <div class="warning message-warning block">
-    {if is_array( $test )}
-        {$test|attribute(show,4)}
-    {else}
-        <h4>{$test}</h4>
-    {/if}
-    </div>
+
+{if is_set( $test )}
+<div class="warning message-feedback block">        
+    {$test}
+</div>
 {/if}
+
+{if is_set( $error )}
+<div class="warning message-warning block">
+    <h4>{$error}</h4>
+</div>
+{/if}    
 
 <table class="list" width="100%" cellspacing="0" cellpadding="0" border="0">
     <tr>

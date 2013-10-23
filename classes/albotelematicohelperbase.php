@@ -18,6 +18,7 @@ class AlbotelematicoHelperBase
     public $classIdentifier;
     public $locations;
     public $values;
+    public $content;
     public $mapAttributes = array();
     
     public function __construct()
@@ -78,6 +79,13 @@ class AlbotelematicoHelperBase
         $this->locations = null;
         $this->values = null;
         $this->mapAttributes = array();
+        $this->content = null;
+    }
+    
+    public function getRemoteID()
+    {
+        $id = (string) $this->row->id_atto;
+        return md5( $id );
     }
     
     public function isImported()
@@ -88,11 +96,8 @@ class AlbotelematicoHelperBase
     public function getCurrentObject()
     {
         $imported = false;
-        if ( $this->isImported() )
-        {
-            $remoteID = $this->getRemoteID();
-            $imported = eZContentObject::fetchByRemoteID( $remoteID );
-        }
+        $remoteID = $this->getRemoteID();
+        $imported = eZContentObject::fetchByRemoteID( $remoteID );
         return $imported;
     }
     
@@ -102,7 +107,8 @@ class AlbotelematicoHelperBase
         {
             if ( $this->isImported() )
             {
-                eZContentObjectOperations::remove( $this->getCurrentObject()->attribute( 'contentobject_id' ) );
+                $this->registerDelete( $this->getCurrentObject()->attribute( 'id' ), $this->getCurrentObject()->attribute( 'name' ) );
+                eZContentObjectOperations::remove( $this->getCurrentObject()->attribute( 'id' ) );
             }
             return false;
         }
@@ -165,11 +171,12 @@ class AlbotelematicoHelperBase
             {
                 return 'ordinanza';
             }
-            else
+            /*else
             {
                 throw new AlboFatalException( 'Non riesco a disambiguare la classe per ' . $oggetto );
-            }
+            }*/
         }
+        return $parameters[0];
     }
     
     public function locationDisambiguation( $parameters )
@@ -371,13 +378,13 @@ class AlbotelematicoHelperBase
             'remote_id'             => $this->getRemoteID()
         ) );
 
-        $content = SQLIContent::create( $contentOptions );
+        $this->content = SQLIContent::create( $contentOptions );
         
         if ( $this->mapAttributes == null )
         {
             $this->attributesMap();
         }        
-        foreach( $content->fields as $language => $fieldset )
+        foreach( $this->content->fields as $language => $fieldset )
         {
             foreach( $fieldset as $attributeIdentifier => $attribute )
             {
@@ -414,11 +421,21 @@ class AlbotelematicoHelperBase
                             }
                         }                    
                     }
-                    $content->fields->{$attributeIdentifier} = $attributeContent;
+                    $this->content->fields->{$attributeIdentifier} = $attributeContent;
                 }            
             }            
         }
-        return $content;
+        return $this->content;
+    }
+    
+    function setPublishedTimestamp()
+    {
+        $contentObject = $this->content->getRawContentObject();        
+        if ( $contentObject instanceof eZContentObject && $contentObject->attribute( 'published' ) !==  $this->values['data_pubblicazione'] )
+        {
+            $contentObject->setAttribute( 'published', $this->values['data_pubblicazione'] );
+            $contentObject->store();
+        }
     }
     
     function washValue( $value )
@@ -438,7 +455,7 @@ class AlbotelematicoHelperBase
         {                            
             $name = basename( $url );
             $file = eZFile::create( $name, $this->tempVarDir, eZHTTPTool::getDataByURL( $url ) );
-            $filePath = $this->tempVarDir . '/' . $name;
+            $filePath = rtrim( $this->tempVarDir, '/' ) . '/' . $name;
             $this->removeFiles[] = $filePath;
             return $filePath;
         }
@@ -493,6 +510,18 @@ class AlbotelematicoHelperBase
         //@todo rimuovere file e oggetti...
     }
     
+    function cleanup()
+    {
+        foreach( $this->removeFiles as $filePath )
+        {
+            $file = eZClusterFileHandler::instance( $filePath );
+            if ( $file->exists() )
+            {
+                $file->delete();
+            }
+        }
+    }
+    
     function test()
     {
         $value = $this->getArgument( 'test' );                
@@ -510,19 +539,45 @@ class AlbotelematicoHelperBase
         }        
     }
     
-    function registerImport( eZContentObject $object )
+    function registerImport()
     {
-        $log = array();
-        $log['time'] = date( 'j/m/Y H:i');
-        $siteaccess = eZSiteAccess::current();
-        $log['siteaccess'] = $siteaccess['name'];
-        $log['object_id'] = $object->attribute( 'id' );
-        $log['object_version'] = $object->attribute( 'current_version' );
-        $log['main_node_id'] = $object->attribute( 'main_node_id' );
-        $log['parent_nodes'] = implode( ', ',  $this->locations );
-        $log['parameters'] = (string) $this->row->id_atto;
+        $object = $this->content->getRawContentObject();
+        if ( $object instanceof eZContentObject )
+        {
+            $log = array();
+            $log['time'] = date( 'j/m/Y H:i');
+            $siteaccess = eZSiteAccess::current();
+            $log['siteaccess'] = $siteaccess['name'];
+            $log['object_id'] = $object->attribute( 'id' );
+            $log['object_version'] = $object->attribute( 'current_version' );
+            $log['main_node_id'] = $object->attribute( 'main_node_id' );
+            $log['parent_nodes'] = implode( ', ',  $this->locations );
+            $log['id_atto'] = (string) $this->row->id_atto;
+            $log['oggetto'] = (string) $this->row->oggetto;
+            
+            $logFileName = 'import_' . date( 'j-m-Y') . '.csv';
+            $logFile = $this->tempLogDir . $logFileName;
+            if ( !file_exists( $logFile ) )
+            {
+                eZFile::create( $logFileName, $this->tempLogDir );
+                $fp = fopen( $this->tempLogDir . $logFileName, 'w' );
+                fputcsv( $fp, array_keys( $log ) );
+                fclose( $fp );  
+            }
+            
+            $fp = fopen( $this->tempLogDir . $logFileName, 'a+' );
+            fputcsv( $fp, array_values( $log ) );
+            fclose( $fp );
+        }
+    }
+    
+    function registerError( $error )
+    {
+        $log = array();        
+        $log['parameter'] = (string) $this->row->id_atto;
+        $log['error'] = $error;
         
-        $logFileName = 'import_' . date( 'j-m-Y') . '.csv';
+        $logFileName = 'error_' . date( 'j-m-Y') . '.csv';
         $logFile = $this->tempLogDir . $logFileName;
         if ( !file_exists( $logFile ) )
         {
@@ -537,13 +592,15 @@ class AlbotelematicoHelperBase
         fclose( $fp ); 
     }
     
-    function registerError( $error )
+    function registerDelete( $id, $name )
     {
         $log = array();        
-        $log['parameter'] = (string) $this->row->id_atto;
-        $log['error'] = $error;
+        $log['id'] = $id;
+        $log['name'] = $name;        
+        $log['id_atto'] = (string) $this->row->id_atto;
+        $log['oggetto'] = (string) $this->row->oggetto;
         
-        $logFileName = 'error_' . date( 'j-m-Y') . '.csv';
+        $logFileName = 'delete_' . date( 'j-m-Y') . '.csv';
         $logFile = $this->tempLogDir . $logFileName;
         if ( !file_exists( $logFile ) )
         {

@@ -4,9 +4,10 @@ class ComunWebAlbotelematicoHelper extends AlbotelematicoHelperBase implements A
 {
     private static $xmlComuni;
     public $feed;
-    public $comunitaID;
+    public $comunita;
     public $comuni = array();
     public $tools;    
+    public $ocscsource;    
     public $defaultLocation;
     public $cacheComuni = array();
     public $storageLocation;
@@ -20,22 +21,37 @@ class ComunWebAlbotelematicoHelper extends AlbotelematicoHelperBase implements A
         return $this->tools;
     }
     
+    public function getOCSCSource()
+    {
+        if ( $this->ocscsource == null )
+        {
+            OCSCHandler::loadAndRegisterAllSources();
+            $this->ocscsource = OCSCHandler::registeredSources( 'albotelematico' );
+            if( is_object( $this->ocscsource ) )
+            {
+                $this->ocscsource->setStorages( array( $this->getStorageLocation() ) );
+            }
+
+        }
+        return $this->ocscsource;
+    }
+    
     public function loadData()
     {        
+        $trans = eZCharTransform::instance();
         if ( $this->hasArgument( 'comunita' ) )
         {
             $comunita = $this->ricavaComunita( $this->getArgument( 'comunita' ) );
             if ( !empty( $comunita ) )
             {
                 $comunita = explode( '-', $comunita );
-                $this->comunitaID = $comunita[0];                
+                $this->comunita = $comunita[0];                
                 $dataMap = eZContentObject::fetch( $comunita[0] )->dataMap();
                 $attributeComuni = $dataMap['comuni']->content();
                 foreach( $attributeComuni['relation_list'] as $attribute )
                 {
-                    $object = eZContentObject::fetch( $attribute["contentobject_id"] );
-                    $dataMap = $object->attribute( 'data_map' );
-                    $this->comuni[] = $dataMap['name']->content();
+                    $object = eZContentObject::fetch( $attribute["contentobject_id"] );                    
+                    $this->comuni[] = $trans->transformByGroup( $object->attribute( 'name' ), "urlalias" );
                 }
             }
             else
@@ -46,7 +62,7 @@ class ComunWebAlbotelematicoHelper extends AlbotelematicoHelperBase implements A
         
         if ( $this->hasArgument( 'ente' ) )
         {
-            $this->comuni[] = $this->getArgument( 'ente' );
+            $this->comuni[] = $this->getArgument( 'ente' );            
         }
         
         if ( empty( $this->comuni ) )
@@ -56,6 +72,7 @@ class ComunWebAlbotelematicoHelper extends AlbotelematicoHelperBase implements A
         
         foreach( $this->comuni as $comune )
         {
+            $comune = str_replace( "comune-di-", "", strtolower( $comune ) );
             $comune = str_replace( " ", "-", strtolower( $comune ) );
             $comune = str_replace( "\'", "-", strtolower( $comune ) );
             $comune = str_replace( "'", "-", strtolower( $comune ) );
@@ -84,9 +101,13 @@ class ComunWebAlbotelematicoHelper extends AlbotelematicoHelperBase implements A
                     $this->data = $parsed->atti;
                 }
             }
-            else
+            if ( $this->comunita == null )
             {
-                throw new AlboFatalException( 'Url non risolto: ' . $feedPath );
+                $this->comunita = $this->getTools()->ricavaComunitaDaComune( $this->data->atto[0]->desc_ente );
+                if ( !eZContentObject::fetch( $this->comunita ) )
+                {
+                    throw new AlboFatalException( 'Comunita di ' . $this->getArgument( 'ente' )  . ' non trovata' );
+                }
             }
         }
         
@@ -95,12 +116,20 @@ class ComunWebAlbotelematicoHelper extends AlbotelematicoHelperBase implements A
     public function availableArguments()
     {
         return array(
-            'ente' => true,
-            'comunita' => true,
+            'ente' => false,
+            'comunita' => false,
             'field' => false,
             'value' => false,
             'test' => false
         );
+    }
+    
+    public function validateArguments()
+    {
+        if ( !$this->hasArgument( 'ente' ) && !$this->hasArgument( 'comunita' ) )
+        {
+            throw new AlboFatalException( "Specificare ente o comunita" );
+        }
     }
 
     public function getClassIdentifier()
@@ -136,19 +165,16 @@ class ComunWebAlbotelematicoHelper extends AlbotelematicoHelperBase implements A
     
     public function getStorageLocation( $asObject = false )
     {
-        if ( $this->comunitaID == null && $this->row !== null && $this->getTools()->ricavaComunitaDaComune( $this->row->desc_ente, true ) )
+        if ( $this->comunita == null && $this->row == null )
         {
-            $this->comunitaID = $this->getTools()->ricavaComunitaDaComune( $this->row->desc_ente );
-            if ( !eZContentObject::fetch( $this->comunitaID ) )
-            {
-                throw new AlboFatalException( 'Comunita di ' . $this->row->desc_ente  . ' non trovata' );
-            }
+            $rootNode = eZContentObjectTreeNode::fetch( eZINI::instance( 'content.ini' )->variable( 'NodeSettings', 'RootNode' ) );
+            $this->comunita = $rootNode->attribute( 'contentobject_id' );
         }
-        $this->storageLocation = $this->getTools()->ricavaStorageComunita( $this->comunitaID );
+        $this->storageLocation = $this->getTools()->ricavaStorageComunita( $this->comunita );        
         $storageLocationNode = eZContentObjectTreeNode::fetch( $this->storageLocation );
         if ( !$storageLocationNode instanceOf eZContentObjectTreeNode )
         {
-            throw new AlboFatalException( 'Storage non trovato' );
+            throw new AlboFatalException( 'Storage non trovato ' . $this->comunita );
         }
         if ( $asObject )
             return $storageLocationNode;
@@ -159,13 +185,9 @@ class ComunWebAlbotelematicoHelper extends AlbotelematicoHelperBase implements A
     public function getLocations()
     {        
         $this->locations = array();
-        $this->fileLocation = $this->getFileLocationComunita();
-        $key = (string) $this->row->tipo_atto;
+        $this->fileLocation = $this->getFileLocationComunita();                
+               
         $defaultLocations = $this->getDefaultLocations();
-        
-        $baseLocation = $this->options['DefaultParentNodeID'];
-        $storageLocation = $this->getStorageLocation();
-        
         if ( isset( $defaultLocations[$key][$this->classIdentifier]['node_ids'] ) )
         {
             $nodes = $defaultLocations[$key][$this->classIdentifier]['node_ids'];
@@ -179,8 +201,9 @@ class ComunWebAlbotelematicoHelper extends AlbotelematicoHelperBase implements A
             }
         }
         
-        $perContoDi = false;
-        //@todo pubblicaNto????
+        //@todo
+        // cerco se configurato perconto di
+        $perContoDi = false;        
         if( !empty( $this->row->pubblicanto_per_conto_di ) )
         {
             $perContoDi = '(per conto di ' . $this->row->pubblicanto_per_conto_di . ')';
@@ -189,6 +212,36 @@ class ComunWebAlbotelematicoHelper extends AlbotelematicoHelperBase implements A
             {
                 $this->locations[] = $defaultLocations['Per conto di'][0]['node_ids'][0];
             }
+        }
+        
+        // cerco se è di un comune
+        $comuni = false;
+        $comuniLocations = array();
+        if ( $this->row !== null && isset( $this->row->desc_ente ) )
+        {
+            $rootNode = eZContentObject::fetch( $this->comunita )->attribute( 'main_node_id' );
+            $comuni = $this->ricavaComune( (string) $this->row->desc_ente );            
+            $comuniIDs = explode( '-', $comuni );            
+            foreach( $comuniIDs as $comuneID )
+            {
+                $comune = eZContentObject::fetch( $comuneID );
+                if ( $comune )
+                {
+                    $assignedNodes = $comune->attribute( 'assigned_nodes' );
+                    foreach( $assignedNodes as $assignedNode )
+                    {
+                        $pathArray = $assignedNode->attribute( 'path_array' );
+                        if ( in_array( $rootNode, $pathArray ) )
+                        {
+                            $comuniLocations[] = $assignedNode->attribute( 'node_id' );
+                        }
+                    }
+                }
+            }
+        }
+        if ( !empty( $comuniLocations ) )
+        {
+            $this->locations = $comuniLocations;
         }
         
         foreach( $this->locations as $i => $location )
@@ -200,14 +253,16 @@ class ComunWebAlbotelematicoHelper extends AlbotelematicoHelperBase implements A
         }
 
         if ( empty( $this->locations ) )
-        {
-            throw new AlboFatalException( 'Non trovo la collocazione per ' . $key . ' ' . $perContoDi );
+        {                        
+            // non so dove metterlo: lo metto nello storage
+            $storageLocation = $this->getStorageLocation();
+            $this->locations = array( $storageLocation );
         }
         return $this->locations;        
     }
 
     /*
-     * In base all'ini restituisce:
+     * Restituisce:
      *  array( 'Nome classe in albo' => array(
      *          'identifier di ez' => array(        //se maggiore di 1 da disambiguare vedi AlbotelematicoHelperBase::valueDisambiguation
      *              'node_ids' => array( 1, 2 ),    //se maggiore di 1 da disambiguare vedi AlbotelematicoHelperBase::valueDisambiguation
@@ -217,67 +272,18 @@ class ComunWebAlbotelematicoHelper extends AlbotelematicoHelperBase implements A
      */
     public function getDefaultLocations()
     {
-        $classMaps = (array) $this->ini->variable( 'MapClassSettings', 'MapClass' );
-        $iniLocations = eZINI::instance( 'entilocali.ini' )->hasVariable( 'LocationsPerClasses', 'Storage_' . $this->getStorageLocation() ) ?
-            eZINI::instance( 'entilocali.ini' )->variable( 'LocationsPerClasses', 'Storage_' . $this->getStorageLocation() ) :
-            array();
-        
-        $locationPerClasses = array();
-        foreach( $iniLocations as $classAndNode )
-        {
-            $classAndNode = explode( ';', $classAndNode );            
-            $locationPerClasses[$classAndNode[1]] = explode( ',', $classAndNode[0] );
-        }
-        
-        $locations = array();        
+        $classMaps = (array) $this->ini->variable( 'MapClassSettings', 'MapClass' );       
         foreach( $classMaps as $alboClass => $classIdentifier )
         {
             $classIdentifiers = explode( ';', $classIdentifier );
             
             foreach( $classIdentifiers as $class )
-            {
-                $parentLocations = array();            
-                foreach( $locationPerClasses as $l => $c )
-                {
-                    if ( in_array( $class, $c ) )
-                    {
-                        $parentLocations = array( $l );
-                    }
-                }
-                
-                $nodes = array();
-                $type = false;
-
-                foreach( $parentLocations as $node )
-                {
-                    $nodes[] = eZContentObjectTreeNode::fetch( $node );
-                    $type = 'entilocali.ini';
-                }
-                                
-                if ( count( $nodes ) == 0 )
-                {
-                    $nodes[] = $this->getStorageLocation( true );
-                    $type = 'default';
-                }
-
-                foreach( $nodes as $index => $node )
-                {
-                    if ( !$node instanceof eZContentObjectTreeNode )
-                    {
-                        $nodes[$index] = 0;
-                    }
-                    else
-                    {
-                        $nodes[$index] = $node->attribute( 'node_id' );
-                    }
-                }
-
-                $locations[$alboClass][$class]['node_ids'] =  $nodes;
-                $locations[$alboClass][$class]['type'] = $type;
+            {                
+                $locations[$alboClass][$class]['node_ids'] =  $this->getOCSCSource()->getLocationsByClass( $class );            
             }
         }
-        $locations['Per conto di'][0]['node_ids'] = isset( $parentLocation['PerContoDi'] ) ? array( $parentLocation['PerContoDi'] ) : array( 0 );
-        $locations['Per conto di'][0]['type'] = isset( $parentLocation['PerContoDi'] ) ? 'node' : '';        
+        //@todo
+        $locations['Per conto di'][0]['node_ids'] = array( 0 );        
         return $locations;
     }
     
@@ -305,7 +311,7 @@ class ComunWebAlbotelematicoHelper extends AlbotelematicoHelperBase implements A
     
     public function getFileLocationComunita()
     {
-        $objectComunita = eZContentObject::fetch( $this->comunitaID );
+        $objectComunita = eZContentObject::fetch( $this->comunita );
         $dataMap = $objectComunita->dataMap();
         if ( isset( $dataMap['media'] ) )
         {
@@ -324,12 +330,12 @@ class ComunWebAlbotelematicoHelper extends AlbotelematicoHelperBase implements A
                 }
             }
         }
-        throw new AlboFatalException( "Comunità {$this->comunitaID}, non ha un media folder Immagini" );        
+        throw new AlboFatalException( "Comunità {$this->comunita}, non ha un media folder Immagini" );        
     }
     
     public function getImageLocationComunita()
     {
-        $objectComunita = eZContentObject::fetch( $this->comunitaID );
+        $objectComunita = eZContentObject::fetch( $this->comunita );
         $dataMap = $objectComunita->dataMap();
         if ( isset( $dataMap['media'] ) )
         {
@@ -348,7 +354,7 @@ class ComunWebAlbotelematicoHelper extends AlbotelematicoHelperBase implements A
                 }
             }
         }
-        throw new AlboFatalException( "Comunità {$this->comunitaID}, non ha un media folder File" );   
+        throw new AlboFatalException( "Comunità {$this->comunita}, non ha un media folder File" );   
     }
     
     public function ricavaComune( $string )

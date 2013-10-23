@@ -78,6 +78,11 @@ interface AlbotelematicoHelperInterface
     function rollback();
     
     /*
+     * pulisce temporanei
+     */
+    function cleanup();
+    
+    /*
      * torna indietro se sbaglia qualcosa
      */
     function test();
@@ -85,11 +90,18 @@ interface AlbotelematicoHelperInterface
     /*
      * Registra il contenuto importato
      */
-    function registerImport( eZContentObject $object );
+    function registerImport();
     
     /*
      * REgistra errore
      */
     function registerError( $error );
+    
+    /*
+     * REgistra cancellazione
+     */
+    function registerDelete( $id, $name );
+    
+    function setPublishedTimestamp();
 
 }
