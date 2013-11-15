@@ -87,7 +87,37 @@ class AlbotelematicoHelperBase
     public function getRemoteID()
     {
         $id = (string) $this->row->id_atto;
-        return md5( $id );
+        return 'at_' . $id;
+        //return md5( $id );
+    }
+    
+    public function getCreatorID()
+    {
+        $admin = eZUser::fetchByName( 'admin' );
+        $user = eZUser::fetchByName( 'albotelematico' );
+        if ( $user )
+            return $user->attribute( 'contentobject_id' );
+        else
+        {
+            $ini = eZINI::instance();
+            $userClassIdentifier = eZContentClass::classIdentifierByID( $ini->variable( "UserSettings", "UserClassID" ) );
+            $userCreatorID = $ini->variable( "UserSettings", "UserCreatorID" );
+            
+            $params = array();
+            $params['class_identifier'] = $userClassIdentifier;
+            $params['creator_id'] = $admin->attribute( 'contentobject_id' );
+            $params['parent_node_id'] = $admin->attribute( 'contentobject' )->attribute( 'main_parent_node_id' );
+            $params['remote_id'] = md5( 'albotelematico' );
+
+            $attributes = array();
+            $attributes['first_name'] = 'Importatore';
+            $attributes['last_name'] = 'Albotelematico';
+            $attributes['user_account'] = 'albotelematico|importer@opencontent.it||md5_password|0';
+            $params['attributes'] = $attributes;
+            $contentObject = eZContentFunctions::createAndPublishObject( $params );
+            return $contentObject->attribute( 'id' );
+        }
+
     }
     
     public function isImported()
@@ -221,9 +251,10 @@ class AlbotelematicoHelperBase
         
         if ( $this->classIdentifier == 'deliberazione' && $identifier == 'competenza' )
         {
+            $organoEmanante = (string) $this->row->organo_emanante;
             foreach( array( 'consiglio', 'consiliar' ) as $term )
             {
-                if ( strpos( strtolower( $oggetto ), $term ) !== false )
+                if ( strpos( strtolower( $organoEmanante ), $term ) !== false )
                 {
                     return 'Consiglio';
                 }
@@ -302,6 +333,7 @@ class AlbotelematicoHelperBase
         {
             switch( $index )
             {
+                case 'data_atto':
                 case 'data_pubblicazione':
                 case 'data_termine':
                 {
@@ -310,7 +342,7 @@ class AlbotelematicoHelperBase
                     {
                         throw new AlboFatalException( "$value non è una data" );
                     }
-                    if ( $index == 'data_pubblicazione' )
+                    if ( $index == 'data_atto' )
                     {
                         $this->values['anno'] = $date->format( 'Y' );
                     }
@@ -379,6 +411,7 @@ class AlbotelematicoHelperBase
     function fillContent()
     {
         $contentOptions = new SQLIContentOptions( array(
+            'creator_id'            => $this->getCreatorID(),
             'class_identifier'      => $this->getClassIdentifier(),
             'remote_id'             => $this->getRemoteID()
         ) );

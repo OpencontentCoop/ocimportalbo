@@ -44,6 +44,7 @@ class AlboImportHandler extends SQLIImportAbstractHandler implements ISQLIImport
         parent::__construct( $options );
         $this->remoteIDPrefix = $this->getHandlerIdentifier() . '-';
         $this->options = $options;
+        //throw new Exception( 'Script non aggiornato per il nuovo xml' );
     }
 
     public function initialize()
@@ -104,7 +105,7 @@ class AlboImportHandler extends SQLIImportAbstractHandler implements ISQLIImport
     }
 
     public function process( $row )
-    {
+    {        
         if ( !$this->helper instanceof AlbotelematicoHelperInterface )
         {
             throw new Exception( "helper non implementa l'interfaccia corretta" );
@@ -165,29 +166,40 @@ class AlboImportHandler extends SQLIImportAbstractHandler implements ISQLIImport
     {
         if ( count( $this->registerMail ) > 0 )
         {
+            $tpl = eZTemplate::factory();
+            
             $mail = new eZMail();                                
             $mail->setSender( eZINI::instance()->variable( 'MailSettings', 'AdminEmail' ) );
+            //innovazione@comunitrentini.it
             $mail->setReceiver( 'luca.realdi@opencontent.it' );
             
             $sitename = eZSys::hostname();
             $arguments = var_export( $this->helper->arguments, 1 );
             $options = var_export( $this->helper->options, 1 );
             $feed = var_export( $this->helper->feed, 1 );        
-                    
-            $body = date( 'j/m/Y h:i' ) . "\n\n"
-                . "### Sorgente ###\n$feed\n\n"
-                . "### Argomenti ###\n$arguments\n\n"
-                . "### Opzioni ###\n$options\n\n";
-                
-            foreach( $this->registerMail as $i => $item )
-            {
-                $i++;
-                $row = var_export( $item['row'], 1 );
-                $body .= "{$i}) Errore: {$item['message']}\n\n### Riga ###\n{$row}\n\n";
-            }
             
-            $errors = count($this->registerMail);
-            $mail->setSubject( "{$errors} errori {$this->getHandlerName()} in $sitename" );
+            $tpl->setVariable( 'sitename', $sitename);
+            $tpl->setVariable( 'arguments', $arguments);
+            $tpl->setVariable( 'options', $options);
+            $tpl->setVariable( 'feed', $feed);
+                            
+            $errors = array();
+            foreach( $this->registerMail as $i => $item )
+            {                
+                $error['row'] = $item['row']->asXML();
+                $error['row_id'] = $item['row']->id_atto;
+                $error['message'] = $item['message'];
+                if ( $item['message'] == '' )
+                {
+                    $error['message'] = 'Errore sconosciuto';
+                }
+                $errors[] = $error;
+            }
+            $tpl->setVariable( 'errors', $errors);
+            
+            $body = $tpl->fetch( 'design:mail_error.tpl' );
+            $mail->setContentType( 'text/html' );
+            $mail->setSubject( "[" . eZINI::instance()->variable( 'SiteSettings', 'SiteName' ) . "] " . count($errors) . " errori {$this->getHandlerName()}" );
             $mail->setBody( $body );
             eZMailTransport::send( $mail );
         }
