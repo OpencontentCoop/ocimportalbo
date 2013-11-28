@@ -31,13 +31,6 @@ else
 }
 
 $userAlbo = eZUser::fetchByName( 'albotelematico' );
-if ( !$userAlbo )
-{
-    $userAlbo = $user;
-    $cli->warning( 'Verranno rimossi gli atti inseriti da admin' );
-    sleep(5);
-}
-
 
 $helperClass = eZINI::instance( 'alboimporthandler.ini' )->variable( 'HelperSettings', 'HelperClass' );
 $helper = new $helperClass();
@@ -73,6 +66,14 @@ $parentNodes = array_unique( $parentNodes );
 $cli->output( 'Rimuovo oggetti di classe ' . implode( ', ', $classIdentifiers ) );
 $cli->output( 'dai nodi ' . implode( ', ', $parentNodes ) );
  
+if ( !$userAlbo )
+{
+    $userAlbo = $user;
+    $cli->warning( 'Verranno rimossi gli atti inseriti da admin, Ctrl + C per annullare' );
+    sleep(5);
+}
+
+ 
 $nodesParams = array();
 foreach( $parentNodes as $nodeID )
 {
@@ -83,7 +84,7 @@ foreach( $parentNodes as $nodeID )
     $cli->warning( 'Rimuovo ' . count( $nodes ) . ' nodi dal parentNode ' . $nodeID );
     foreach( $nodes as $node )
     {
-        $cli->warning( 'Rimuovo il nodo ' . $node->attribute( 'node_id' ) . ' ' . $node->attribute( 'name' ) );
+        $cli->warning( 'Rimuovo ' .$node->attribute( 'class_identifier' ) . ' ' . $node->attribute( 'node_id' ) . ' ' . $node->attribute( 'name' ) );
         eZContentObjectOperations::remove( $node->attribute( 'contentobject_id' ) );        
     }
     $cli->warning();

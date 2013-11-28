@@ -283,7 +283,35 @@ class ComunWebAlbotelematicoHelper extends AlbotelematicoHelperBase implements A
             }
         }
         //@todo
-        $locations['Per conto di'][0]['node_ids'] = array( 0 );        
+        $locations['Per conto di'][0]['node_ids'] = array( 0 );
+        
+        //@comuni
+        $comunitaNode = eZContentObjectTreeNode::fetch( eZINI::instance( 'content.ini' )->variable( 'NodeSettings', 'RootNode' ) );
+        if ( $comunitaNode instanceof eZContentObjectTreeNode )
+        {
+            $dataMap = $comunitaNode->attribute( 'data_map' );
+            if ( isset( $dataMap['comuni'] ) && $dataMap['comuni']->hasContent() )
+            {
+                $relations = $dataMap['comuni']->content();
+                foreach( $relations['relation_list'] as $index => $comune )
+                {
+                    $comune = eZContentObject::fetch( $comune['contentobject_id'] );
+                    if ( $comune )
+                    {
+                        $assigned_nodes = $comune->attribute( 'assigned_nodes' );
+                        foreach( $assigned_nodes as $assigned_node )
+                        {
+                            $pathArray = $assigned_node->attribute( 'path_array' );
+                            if ( in_array( eZINI::instance( 'content.ini' )->variable( 'NodeSettings', 'RootNode' ), $pathArray ) )
+                            {                                
+                                $locations[$comune->attribute('name')][$index]['node_ids'] = array( $assigned_node->attribute( 'node_id' ) );
+                            }
+                        }
+                    }                    
+                }
+            }
+        }
+        
         return $locations;
     }
     
