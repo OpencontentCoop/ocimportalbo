@@ -34,23 +34,18 @@ class AlboImportHandler extends SQLIImportAbstractHandler implements ISQLIImport
     private $rowCount;
     private $helper;
 
-    private $registerMail;
+    private $registerMail = array();
     
-    /**
-     * Constructor
-     */
     public function __construct( SQLIImportHandlerOptions $options = null )
     {
         parent::__construct( $options );
         $this->remoteIDPrefix = $this->getHandlerIdentifier() . '-';
-        $this->options = $options;
-        //throw new Exception( 'Script non aggiornato per il nuovo xml' );
+        $this->options = $options;        
     }
 
     public function initialize()
     {	
-        //@todo controllare che il RobotUser definito in ini abbia permessi adeguati
-
+        $this->registerMail = array();
         $helperClass = eZINI::instance( 'alboimporthandler.ini' )->variable( 'HelperSettings', 'HelperClass' );
         if ( class_exists( $helperClass ) )
         {
@@ -79,7 +74,6 @@ class AlboImportHandler extends SQLIImportAbstractHandler implements ISQLIImport
         $this->cli->output( $this->helper->getDataCount() . ' atti caricati' );
     }
 
-
     public function getProcessLength()
     {
         if ( !isset( $this->rowCount ) )
@@ -88,7 +82,6 @@ class AlboImportHandler extends SQLIImportAbstractHandler implements ISQLIImport
         }
         return $this->rowCount;
     }
-
 
     public function getNextRow()
     {
@@ -150,7 +143,7 @@ class AlboImportHandler extends SQLIImportAbstractHandler implements ISQLIImport
         catch( AlboFatalException $e )
         {            
             $this->helper->rollback();
-            $this->registerMail[] = array( 'row' => $row, 'message' => $e->getMessage() );
+            $this->registerMail[] = array( 'row' => $row, 'exception' => $e );
             $this->helper->registerError( $e->getMessage() );
         }
         catch( Exception $e )
@@ -184,15 +177,17 @@ class AlboImportHandler extends SQLIImportAbstractHandler implements ISQLIImport
             $tpl->setVariable( 'feed', $feed);
                             
             $errors = array();
+            $e = $item['exception'];
+            $message = $e->getMessage();
+            if ( $message == '' )
+            {
+                $message = $e->getTraceAsString();
+            }
             foreach( $this->registerMail as $i => $item )
             {                
                 $error['row'] = $item['row']->asXML();
                 $error['row_id'] = $item['row']->id_atto;
-                $error['message'] = $item['message'];
-                if ( $item['message'] == '' )
-                {
-                    $error['message'] = 'Errore sconosciuto';
-                }
+                $error['message'] = $message;                
                 $errors[] = $error;
             }
             $tpl->setVariable( 'errors', $errors);
