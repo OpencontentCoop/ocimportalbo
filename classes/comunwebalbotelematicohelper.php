@@ -21,7 +21,7 @@ class ComunWebAlbotelematicoHelper extends AlbotelematicoHelperBase implements A
         return $this->tools;
     }
     
-    public function getOCSCSource()
+    public function getOCSCSource( $reset = false )
     {
         if ( $this->ocscsource == null )
         {
@@ -30,6 +30,10 @@ class ComunWebAlbotelematicoHelper extends AlbotelematicoHelperBase implements A
             if( is_object( $this->ocscsource ) )
             {
                 $this->ocscsource->setStorages( array( $this->getStorageLocation() ) );
+                if ( $reset == true )
+                {
+                    $this->ocscsource->resetData();
+                }
             }
 
         }
@@ -40,8 +44,8 @@ class ComunWebAlbotelematicoHelper extends AlbotelematicoHelperBase implements A
     {        
         $trans = eZCharTransform::instance();
         if ( $this->hasArgument( 'comunita' ) )
-        {
-            $comunita = $this->ricavaComunita( $this->getArgument( 'comunita' ) );
+        {            
+            $comunita = $this->ricavaComunita( $this->getArgument( 'comunita' ) );            
             if ( !empty( $comunita ) )
             {
                 $comunita = explode( '-', $comunita );
@@ -270,16 +274,21 @@ class ComunWebAlbotelematicoHelper extends AlbotelematicoHelperBase implements A
      *          )
      *  )
      */
-    public function getDefaultLocations()
+    public function getDefaultLocations( $reset = false )
     {
-        $classMaps = (array) $this->ini->variable( 'MapClassSettings', 'MapClass' );       
+        $classMaps = (array) $this->ini->variable( 'MapClassSettings', 'MapClass' );
+        
+        //@todo serve per rimuovere
+        $classMaps['Solo per rimozione_convocazioni'] = 'convocazione';
+        $classMaps['Solo per rimozione_atti'] = 'atto';
+        
         foreach( $classMaps as $alboClass => $classIdentifier )
         {
             $classIdentifiers = explode( ';', $classIdentifier );
             
             foreach( $classIdentifiers as $class )
             {                
-                $locations[$alboClass][$class]['node_ids'] =  $this->getOCSCSource()->getLocationsByClass( $class );            
+                $locations[$alboClass][$class]['node_ids'] =  $this->getOCSCSource( $reset )->getLocationsByClass( $class );            
             }
         }
         //@todo
@@ -304,7 +313,7 @@ class ComunWebAlbotelematicoHelper extends AlbotelematicoHelperBase implements A
                             $pathArray = $assigned_node->attribute( 'path_array' );
                             if ( in_array( eZINI::instance( 'content.ini' )->variable( 'NodeSettings', 'RootNode' ), $pathArray ) )
                             {                                
-                                $locations[$comune->attribute('name')][$index]['node_ids'] = array( $assigned_node->attribute( 'node_id' ) );
+                                $locations[$comune->attribute('name')][0]['node_ids'] = array( $assigned_node->attribute( 'node_id' ) );
                             }
                         }
                     }                    
@@ -316,7 +325,7 @@ class ComunWebAlbotelematicoHelper extends AlbotelematicoHelperBase implements A
     }
     
     public function ricavaComunita( $string )
-    {
+    {        
         $string = (string) $string;
         $comuni = '';
         $class = eZContentClass::fetchByIdentifier( 'comunita' );

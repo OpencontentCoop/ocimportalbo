@@ -11,7 +11,11 @@ $script = eZScript::instance( array(  'description' => ( "Rimuove gli atti impor
                                       'use-extensions' => true ) );
 
 
-$options = $script->getOptions();
+$options = $script->getOptions( "[force_admin][show_parents]",
+                                "",
+                                array( 'force_admin' => "Filtra atti creati da admin",
+                                       'show_parents' =>  "Mostra i nomi e i percorsi dei parent nodes"
+                                       ) );
 $script->initialize();
 
 $script->startup();
@@ -30,11 +34,11 @@ else
     return;
 }
 
-$userAlbo = eZUser::fetchByName( 'albotelematico' );
+$userAlbo = $options['force_admin'] ? false : eZUser::fetchByName( 'albotelematico' );
 
 $helperClass = eZINI::instance( 'alboimporthandler.ini' )->variable( 'HelperSettings', 'HelperClass' );
 $helper = new $helperClass();
-$locations = $helper->getDefaultLocations();
+$locations = $helper->getDefaultLocations( true );
 
 $classIdentifiers = array();
 $parentNodes = array();
@@ -73,23 +77,33 @@ if ( !$userAlbo )
     sleep(5);
 }
 
- 
-$nodesParams = array();
-foreach( $parentNodes as $nodeID )
+if ( $options['show_parents'] )
 {
-    $nodes = eZContentObjectTreeNode::subTreeByNodeID( array( 'ClassFilterType' => 'include',
-                                                              'ClassFilterArray'  =>  $classIdentifiers,
-                                                              'AttributeFilter' => array( array( 'owner', '=', $userAlbo->attribute( 'contentobject_id' ) ) ) ),
-                                                       $nodeID );
-    $cli->warning( 'Rimuovo ' . count( $nodes ) . ' nodi dal parentNode ' . $nodeID );
-    foreach( $nodes as $node )
+    foreach( $parentNodes as $nodeID )
     {
-        $cli->warning( 'Rimuovo ' .$node->attribute( 'class_identifier' ) . ' ' . $node->attribute( 'node_id' ) . ' ' . $node->attribute( 'name' ) );
-        eZContentObjectOperations::remove( $node->attribute( 'contentobject_id' ) );        
+        $node = eZContentObjectTreeNode::fetch( $nodeID );
+        $cli->output();
+        $cli->output( $nodeID . ' ' . $node->attribute( 'name' ) . ' ' . $node->attribute( 'path_identification_string' ) );        
     }
-    $cli->warning();
 }
-
+else
+{
+    $nodesParams = array();
+    foreach( $parentNodes as $nodeID )
+    {
+        $nodes = eZContentObjectTreeNode::subTreeByNodeID( array( 'ClassFilterType' => 'include',
+                                                                  'ClassFilterArray'  =>  $classIdentifiers,
+                                                                  'AttributeFilter' => array( array( 'owner', '=', $userAlbo->attribute( 'contentobject_id' ) ) ) ),
+                                                           $nodeID );
+        $cli->warning( 'Rimuovo ' . count( $nodes ) . ' nodi dal parentNode ' . $nodeID );
+        foreach( $nodes as $node )
+        {
+            $cli->warning( 'Rimuovo ' .$node->attribute( 'class_identifier' ) . ' ' . $node->attribute( 'node_id' ) . ' ' . $node->attribute( 'name' ) );
+            eZContentObjectOperations::remove( $node->attribute( 'contentobject_id' ) );        
+        }
+        $cli->warning();
+    }
+}
 
 $cli->output( 'Concludo la procedura' );
 $script->shutdown();

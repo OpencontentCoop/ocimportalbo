@@ -9,7 +9,7 @@ class OCSCAlboTelematicoSource extends OCSCAbstractSource
     function __construct()
     {
         $this->alboINI = eZINI::instance( 'alboimporthandler.ini' );
-        $this->tools = new EntiLocaliTools();
+        $this->tools = new EntiLocaliTools();        
     }
     
     function getSourceName()
@@ -123,7 +123,7 @@ class OCSCAlboTelematicoSource extends OCSCAbstractSource
     
     private function getStorageComunita()
     {
-        $rootNode = eZContentObjectTreeNode::fetch( eZINI::instance( 'content.ini' )->variable( 'NodeSettings', 'RootNode' ) );
+        $rootNode = eZContentObjectTreeNode::fetch( eZINI::instance( 'content.ini' )->variable( 'NodeSettings', 'RootNode' ) );        
         if ( $rootNode instanceof eZContentObjectTreeNode && $rootNode->attribute( 'class_identifier' ) == 'comunita' )
         {
             return $this->tools->ricavaStorageComunita( $rootNode->attribute( 'contentobject_id' ) ); 
@@ -132,7 +132,7 @@ class OCSCAlboTelematicoSource extends OCSCAbstractSource
     }    
     
     private function storeDefaultLocations()
-    {        
+    {                
         if ( $this->getStorageComunita() )
         {
             $classMaps = (array) $this->alboINI->variable( 'MapClassSettings', 'MapClass' );
@@ -145,13 +145,18 @@ class OCSCAlboTelematicoSource extends OCSCAbstractSource
                 $classAndNode = explode( ';', $classAndNode );            
                 $locationPerClasses[$classAndNode[1]] = explode( ',', $classAndNode[0] );
             }
-                        
+            
+            //@todo serve per rimuovere
+            $classMaps['Solo per rimozione_convocazioni'] = 'convocazione';
+            $classMaps['Solo per rimozione_atti'] = 'atto';
+            
             foreach( $classMaps as $alboClass => $classIdentifier )
             {
                 $classIdentifiers = explode( ';', $classIdentifier );
                 
                 foreach( $classIdentifiers as $class )
                 {
+                    
                     $parentLocations = array();            
                     foreach( $locationPerClasses as $l => $c )
                     {
@@ -177,8 +182,7 @@ class OCSCAlboTelematicoSource extends OCSCAbstractSource
                         {
                             $nodes[$index] = $node->attribute( 'node_id' );
                         }
-                    }
-                    
+                    }                    
                     $this->storeLocationsForClass( $class, $nodes );
                 }
             }

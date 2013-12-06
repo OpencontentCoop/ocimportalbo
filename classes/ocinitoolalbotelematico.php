@@ -12,7 +12,7 @@ class OCIniToolAlbotelematico implements OCIniToolInterface
     {
         try
         {
-            $helperClass = eZINI::instance( 'alboimporthandler.ini' )->variable( 'HelperSettings', 'HelperClass' );
+            $helperClass = eZINI::instance( 'alboimporthandler.ini' )->variable( 'HelperSettings', 'HelperClass' );            
             if ( class_exists( $helperClass ) )
             {
                 $this->helper = new $helperClass();
@@ -27,7 +27,7 @@ class OCIniToolAlbotelematico implements OCIniToolInterface
                 throw new Exception( "$helperClass non implementa l'interfaccia corretta" );
             }
             
-            $this->locations = $this->helper->getDefaultLocations();
+            $this->locations = $this->helper->getDefaultLocations();            
             $http = eZHTTPTool::instance();
             if( $http->hasPostVariable( 'test' ) )
             {
@@ -39,7 +39,7 @@ class OCIniToolAlbotelematico implements OCIniToolInterface
                 $this->helper->setCurrentRow( $row );
 
                 $test['classIdentifier'] = $this->helper->getClassIdentifier();
-                $test['locations'] = $this->helper->getLocations();
+                $test['locations'] = $this->helper->getLocations();                
                 $test['values'] = $this->helper->attributesMap();
                 $this->test = $this->html_show_array( $test );
             }
