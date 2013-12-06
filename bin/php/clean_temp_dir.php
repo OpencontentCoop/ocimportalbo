@@ -4,7 +4,7 @@ include( 'autoload.php' );
 
 $script = eZScript::instance(
     array(
-        "description" => "eZ Publish trashed images sanitizer script (#017781).",
+        "description" => "Clean temp csv albotelematico files.",
         "use-session" => false,
         "use-modules" => false,
         "use-extensions" => true,
