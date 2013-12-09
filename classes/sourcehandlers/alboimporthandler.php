@@ -182,7 +182,7 @@ class AlboImportHandler extends SQLIImportAbstractHandler implements ISQLIImport
             {
                 $message = $e->getMessage();
             }
-            if ( $message == '' )
+            if ( $message == '' && $e instanceof Exception )
             {
                 $message = $e->getTraceAsString();
             }
