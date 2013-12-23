@@ -156,7 +156,7 @@ class AlboImportHandler extends SQLIImportAbstractHandler implements ISQLIImport
     }
     
     public function sendMail()
-    {
+    {        
         if ( count( $this->registerMail ) > 0 )
         {
             $tpl = eZTemplate::factory();
@@ -177,17 +177,17 @@ class AlboImportHandler extends SQLIImportAbstractHandler implements ISQLIImport
             $tpl->setVariable( 'feed', $feed);
                             
             $errors = array();
-            $e = $item['exception'];
-            if ( $e instanceof Exception )
-            {
-                $message = $e->getMessage();
-            }
-            if ( $message == '' && $e instanceof Exception )
-            {
-                $message = $e->getTraceAsString();
-            }
             foreach( $this->registerMail as $i => $item )
             {                
+                $e = $item['exception'];            
+                if ( $e instanceof Exception )
+                {
+                    $message = $e->getMessage();
+                }
+                if ( $message == '' && $e instanceof Exception )
+                {
+                    $message = $e->getTraceAsString();
+                }
                 $error['row'] = $item['row']->asXML();
                 $error['row_id'] = $item['row']->id_atto;
                 $error['message'] = $message;                
