@@ -218,11 +218,12 @@ class AlbotelematicoHelperBase
     {
         $oggetto = (string) $this->row->oggetto;
         $tipo = (string) $this->row->tipo_atto;
+        $organoEmanante = (string) $this->row->organo_emanante;
         if ( $tipo == 'Delibere' )
         {
             foreach( array( 'consiglio', 'consiliar' ) as $term )
             {
-                if ( strpos( strtolower( $oggetto ), $term ) !== false )
+                if ( strpos( strtolower( $organoEmanante ), $term ) !== false )
                 {
                     return $parameters[1]; // Delibere di Consiglio
                 }
@@ -342,7 +343,7 @@ class AlbotelematicoHelperBase
                     {
                         throw new AlboFatalException( "$value non è una data" );
                     }
-                    if ( $index == 'data_atto' )
+                    if ( $index == 'data_pubblicazione' )
                     {
                         $this->values['anno'] = $date->format( 'Y' );
                     }
