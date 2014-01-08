@@ -525,8 +525,9 @@ class AlbotelematicoHelperBase
             {
                 $object = $result['contentobject'];
                 $object->setAttribute( 'remote_id', $remoteID );
+                $object->store();
             }
-            elseif ( isset( $result['errors'] ) )
+            elseif ( isset( $result['errors'] ) && !empty( $result['errors'] ) )
             {                
                 throw new AlboFatalException( implode( ', ', $result['errors'] ) );
             }
