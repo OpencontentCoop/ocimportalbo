@@ -343,7 +343,7 @@ class AlbotelematicoHelperBase
                     {
                         throw new AlboFatalException( "$value non è una data" );
                     }
-                    if ( $index == 'data_pubblicazione' )
+                    if ( $index == 'data_atto' )
                     {
                         $this->values['anno'] = $date->format( 'Y' );
                     }
@@ -539,7 +539,7 @@ class AlbotelematicoHelperBase
             }
             else
             {
-                throw new AlboFatalException( 'Errore caricando ' . $file['url'] );
+                throw new AlboFatalException( 'Errore caricando ' . $name );
             }            
         }
         return implode( '-', $objectIDs );
