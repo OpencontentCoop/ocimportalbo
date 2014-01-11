@@ -348,8 +348,8 @@ class AlbotelematicoHelperBase
                         $this->values['anno_file'] = $date->format( 'Y' );
                     }
                     if ( $index == 'data_atto' )
-                    {
-                        $this->values['anno'] = $date->format( 'Y' );
+                    {                        
+                        $this->values['anno'] = $date->format( 'Y' );                        
                     }
                     $this->values[$index] = $date->format( 'U' );
                 } break;
@@ -382,7 +382,6 @@ class AlbotelematicoHelperBase
         {
             $this->values['allegati'][$i]['url'] = $baseUrl . $item['path'];
         }
-
         return $this->values;
     }
 
@@ -426,7 +425,8 @@ class AlbotelematicoHelperBase
         if ( $this->mapAttributes == null )
         {
             $this->attributesMap();
-        }        
+        }
+        
         foreach( $this->content->fields as $language => $fieldset )
         {
             foreach( $fieldset as $attributeIdentifier => $attribute )

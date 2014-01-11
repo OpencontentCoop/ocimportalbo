@@ -137,6 +137,8 @@ class AlboImportHandler extends SQLIImportAbstractHandler implements ISQLIImport
             $publisher = SQLIContentPublisher::getInstance();
             $publisher->publish( $content );
             
+            $this->cli->output( 'Published ' . $this->helper->getRemoteID() );
+            
             $this->helper->registerImport();
             unset( $content );
         }
