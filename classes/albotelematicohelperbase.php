@@ -343,6 +343,10 @@ class AlbotelematicoHelperBase
                     {
                         throw new AlboFatalException( "$value non è una data" );
                     }
+                    if ( $index == 'data_pubblicazione' )
+                    {
+                        $this->values['anno_file'] = $date->format( 'Y' );
+                    }
                     if ( $index == 'data_atto' )
                     {
                         $this->values['anno'] = $date->format( 'Y' );
@@ -371,7 +375,7 @@ class AlbotelematicoHelperBase
         }
 
         $baseUrl = str_replace( "ENTE", $this->row->id_ente, $this->options['FileUrl'] );
-        $baseUrl = str_replace( "ANNO", $this->values['anno'], $baseUrl );
+        $baseUrl = str_replace( "ANNO", $this->values['anno_file'], $baseUrl );
 
         $this->values['url'] = $baseUrl . $this->values['url'];
         foreach( $this->values['allegati'] as $i => $item )
