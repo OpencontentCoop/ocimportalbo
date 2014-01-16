@@ -48,26 +48,7 @@ class OCSCAlboTelematicoSource extends OCSCAbstractSource
         $locations = $this->getStoredLocationsByClass( $classIdentifier );
         if ( empty( $locations ) )
         {
-            $data = $this->getData();
-            foreach( $this->storages as $storage )
-            {
-                if ( is_numeric( $storage ) )
-                {
-                    $storage = eZContentObjectTreeNode::fetch( $storage );                
-                }
-                
-                if ( !$storage instanceof eZContentObjectTreeNode ||
-                     !eZContentCLass::fetchByIdentifier( $classIdentifier ) )
-                {
-                    continue;
-                }
-                $storageID = $storage->attribute( 'contentobject_id' );                
-                if ( !isset( $data[$storageID] ) )
-                {
-                    $this->storeDefaultLocations();
-                }
-            }            
-            return parent::getLocationsByClass( $classIdentifier );
+            return array();            
         }
         else
         {
@@ -106,7 +87,7 @@ class OCSCAlboTelematicoSource extends OCSCAbstractSource
         }
         if ( empty( $selectedNodeIDArray ) )
         {
-            return false;
+            return array();
         }
         return $selectedNodeIDArray;
     }

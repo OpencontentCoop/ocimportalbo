@@ -156,6 +156,11 @@ class AlbotelematicoHelperBase
         {
             $process = ( (string) $this->row->{$this->arguments['field']} == $this->arguments['value'] );
         }
+        if ( $this->ini->hasVariable( 'HelperSettings', 'AlwaysRepublish' )
+             && $this->ini->variable( 'HelperSettings', 'AlwaysRepublish' ) == 'enabled' )
+        {
+            $process = true;
+        }        
         return $process;
     }
 
@@ -381,7 +386,7 @@ class AlbotelematicoHelperBase
         foreach( $this->values['allegati'] as $i => $item )
         {
             $this->values['allegati'][$i]['url'] = $baseUrl . $item['path'];
-        }
+        }        
         return $this->values;
     }
 
@@ -445,8 +450,8 @@ class AlbotelematicoHelperBase
                             foreach( $attributeContent as $item )
                             {
                                 if ( isset( $item['url'] ) && isset( $item['name'] ) )
-                                {
-                                    $attributeContent = $this->uploadFiles( $attributeContent );
+                                {                                                                        
+                                    $attributeContent = $this->uploadFiles( $attributeContent );                                    
                                     break;
                                 }
                             }
@@ -493,13 +498,13 @@ class AlbotelematicoHelperBase
     }
     
     function tempFile( $url )
-    {
+    {        
         if ( eZHTTPTool::getDataByURL( $url, true ) )
         {                            
             $name = basename( $url );
             $file = eZFile::create( $name, $this->tempVarDir, eZHTTPTool::getDataByURL( $url ) );
             $filePath = rtrim( $this->tempVarDir, '/' ) . '/' . $name;
-            $this->removeFiles[] = $filePath;
+            $this->removeFiles[] = $filePath;        
             return $filePath;
         }
         else
@@ -512,19 +517,19 @@ class AlbotelematicoHelperBase
     {
         $objectIDs = array();
         foreach( $files as $file )
-        {
+        {            
             $remoteID = md5( $file['path'] );
             $node = false;
             $object = eZContentObject::fetchByRemoteID( $remoteID );
             if ( $object instanceof eZContentObject )
             {
                 $node = $object->attribute( 'main_node' );
-            }
+            }            
             $name = $file['name'];
-            $file = $this->tempFile( $file['url'] );
+            $fileStored = $this->tempFile( $file['url'] );            
             $result = array();
             $upload = new eZContentUpload();
-            $upload->handleLocalFile( $result, $file, $this->fileLocation, $node, $name );
+            $uploadFile = $upload->handleLocalFile( $result, $fileStored, $this->fileLocation, $node, $name );
             if ( isset( $result['contentobject'] ) && ( !$object instanceof eZContentObject ) )
             {
                 $object = $result['contentobject'];
@@ -543,7 +548,7 @@ class AlbotelematicoHelperBase
             }
             else
             {
-                throw new AlboFatalException( 'Errore caricando ' . $name );
+                throw new AlboFatalException( 'Errore caricando ' . var_export( $file, 1 ) . ' ' . $fileStored );
             }            
         }
         return implode( '-', $objectIDs );
