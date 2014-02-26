@@ -88,6 +88,7 @@ class ComunWebAlbotelematicoHelper extends AlbotelematicoHelperBase implements A
             }
             
             $feedPath = str_replace("---", $comune, $this->options['FeedBase']);
+
             $this->feed[] = $feedPath . ': ' . var_export( eZHTTPTool::getDataByUrl( $feedPath, true ), 1 );
             if ( eZHTTPTool::getDataByUrl( $feedPath, true ) )
             {
@@ -104,7 +105,7 @@ class ComunWebAlbotelematicoHelper extends AlbotelematicoHelperBase implements A
                 {
                     $this->data = $parsed->atti;
                 }
-            }
+            }        
             if ( $this->comunita == null )
             {
                 $this->comunita = $this->getTools()->ricavaComunitaDaComune( $this->data->atto[0]->desc_ente );
