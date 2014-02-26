@@ -164,9 +164,9 @@ class AlboImportHandler extends SQLIImportAbstractHandler implements ISQLIImport
             $tpl = eZTemplate::factory();
             
             $mail = new eZMail();                                
-            $mail->setSender( eZINI::instance()->variable( 'MailSettings', 'AdminEmail' ) );
-            //innovazione@comunitrentini.it
-            $mail->setReceiver( 'luca.realdi@opencontent.it' );
+            $mail->setSender( eZINI::instance()->variable( 'MailSettings', 'AdminEmail' ) );            
+            $mail->setReceiver( 'logcomunweb@libero.it' );
+            $mail->addCc( 'logger@opencontent.it' );
             
             $sitename = eZSys::hostname();
             $arguments = var_export( $this->helper->arguments, 1 );

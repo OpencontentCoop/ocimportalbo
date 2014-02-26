@@ -374,7 +374,10 @@ class AlbotelematicoHelperBase
 
                 default:
                 {
-                    $this->values[$index] = (string) $value;
+                    if ( !empty( $value ) )
+                    {
+                        $this->values[$index] = (string) $value;
+                    }
                 }
             }
         }
@@ -382,7 +385,10 @@ class AlbotelematicoHelperBase
         $baseUrl = str_replace( "ENTE", $this->row->id_ente, $this->options['FileUrl'] );
         $baseUrl = str_replace( "ANNO", $this->values['anno_file'], $baseUrl );
 
-        $this->values['url'] = $baseUrl . $this->values['url'];
+        if ( isset( $this->values['url'] ) )
+        {
+            $this->values['url'] = $baseUrl . $this->values['url'];
+        }
         foreach( $this->values['allegati'] as $i => $item )
         {
             $this->values['allegati'][$i]['url'] = $baseUrl . $item['path'];
