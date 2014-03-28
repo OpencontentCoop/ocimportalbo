@@ -371,9 +371,10 @@ class AlbotelematicoHelperBase
                         }
                     }
                 } break;
-
+                
                 default:
                 {
+                    $value = (string) $value;
                     if ( !empty( $value ) )
                     {
                         $this->values[$index] = (string) $value;
@@ -392,7 +393,7 @@ class AlbotelematicoHelperBase
         foreach( $this->values['allegati'] as $i => $item )
         {
             $this->values['allegati'][$i]['url'] = $baseUrl . $item['path'];
-        }        
+        }
         return $this->values;
     }
 
@@ -515,7 +516,8 @@ class AlbotelematicoHelperBase
         }
         else
         {
-            throw new AlboFatalException( "File {$url} non trovato" );
+            return null;
+            //throw new AlboFatalException( "File {$url} non trovato" );
         }        
     }
 
@@ -533,29 +535,32 @@ class AlbotelematicoHelperBase
             }            
             $name = $file['name'];
             $fileStored = $this->tempFile( $file['url'] );            
-            $result = array();
-            $upload = new eZContentUpload();
-            $uploadFile = $upload->handleLocalFile( $result, $fileStored, $this->fileLocation, $node, $name );
-            if ( isset( $result['contentobject'] ) && ( !$object instanceof eZContentObject ) )
+            if ( $fileStored !== null )
             {
-                $object = $result['contentobject'];
-                $object->setAttribute( 'remote_id', $remoteID );
-                $object->store();
+                $result = array();
+                $upload = new eZContentUpload();
+                $uploadFile = $upload->handleLocalFile( $result, $fileStored, $this->fileLocation, $node, $name );
+                if ( isset( $result['contentobject'] ) && ( !$object instanceof eZContentObject ) )
+                {
+                    $object = $result['contentobject'];
+                    $object->setAttribute( 'remote_id', $remoteID );
+                    $object->store();
+                }
+                elseif ( isset( $result['errors'] ) && !empty( $result['errors'] ) )
+                {                
+                    throw new AlboFatalException( implode( ', ', $result['errors'] ) );
+                }
+                
+                if ( $object instanceof eZContentObject )
+                {
+                    $objectIDs[] = $object->attribute( 'id' );
+                    $this->removeObjects[] = $object;                
+                }
+                else
+                {
+                    throw new AlboFatalException( 'Errore caricando ' . var_export( $file, 1 ) . ' ' . $fileStored );
+                }
             }
-            elseif ( isset( $result['errors'] ) && !empty( $result['errors'] ) )
-            {                
-                throw new AlboFatalException( implode( ', ', $result['errors'] ) );
-            }
-            
-            if ( $object instanceof eZContentObject )
-            {
-                $objectIDs[] = $object->attribute( 'id' );
-                $this->removeObjects[] = $object;                
-            }
-            else
-            {
-                throw new AlboFatalException( 'Errore caricando ' . var_export( $file, 1 ) . ' ' . $fileStored );
-            }            
         }
         return implode( '-', $objectIDs );
     }
@@ -668,5 +673,10 @@ class AlbotelematicoHelperBase
         $fp = fopen( $this->tempLogDir . $logFileName, 'a+' );
         fputcsv( $fp, array_values( $log ) );
         fclose( $fp ); 
+    }
+    
+    function saveINILocations( $data )
+    {
+        return false;
     }
 }

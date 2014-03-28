@@ -242,5 +242,62 @@ class OpenPaAlbotelematicoHelper extends AlbotelematicoHelperBase implements Alb
         }
         return $response;
     }
+    
+    /**
+     * Salva le locations in alboimporthandler.ini
+     * Usato in OCIniToolAlbotelematico
+     * vedi <dominio>/inigui/tools/albolocation
+     * attenzione ai permessi:
+     * 
+     * drwxrwxr-x 2 developer apache 4096 Nov 20 14:55 castellomolina_backend -> chmod 775 castellomolina_backend 
+     * -rw-rw-rw- 1 apache    apache  622 Mar  5 15:52 alboimporthandler.ini.append.php -> chmod 775 castellomolina_backend/alboimporthandler.ini.append.php
+     *
+     * @param array $data
+     */
+    function saveINILocations( $data )
+    {
+        $writeOk = false;
+        if ( isset( $data['Per conto di'] ) )
+        {
+            $data['PerContoDi'] = $data['Per conto di'];
+            unset( $data['Per conto di'] );
+        }
+        
+        $siteAccess = eZSiteAccess::current();
+        if ( strpos( $siteAccess['name'], '_backend' ) !== false )
+        {
+            $ParentNode = array();
+            foreach( $data as $key => $values )
+            {
+                $isEmpty = true;
+                foreach( $values as $value )
+                {
+                    if ( $value !== '' )
+                    {
+                        $isEmpty = false;
+                    }                    
+                }
+                if ( !$isEmpty )
+                {
+                    $ParentNode[$key] = implode( '|', $values );
+                }
+            }
+            if ( !empty( $ParentNode ) )
+            {
+                $path = "settings/siteaccess/{$siteAccess['name']}/";
+                $iniFile = "alboimporthandler.ini";
+                $block = "ParentNodeSettings";
+                $settingName = "ParentNode";
+                $ini = new eZINI( $iniFile . '.append', $path, null, null, null, true, true );                
+                $ini->setVariable( $block, $settingName, $ParentNode );
+                $writeOk = $ini->save();
+                if ( $writeOk )
+                {
+                    eZCache::clearByTag( 'ini' );                    
+                }
+            }            
+        }
+        return $writeOk;
+    }
 
 }

@@ -3,7 +3,7 @@
 class OCIniToolAlbotelematico implements OCIniToolInterface
 {
     public $locations;
-    public $test = null;
+    public $test = null;    
     public $error = null;
     public $xml = false;
     public $helper = null;
@@ -12,6 +12,14 @@ class OCIniToolAlbotelematico implements OCIniToolInterface
     {
         try
         {
+            $scheduledImport = array_merge(
+                SQLIScheduledImport::fetchList( 0, null, array( 'handler' => 'albo' ) ),
+                SQLIScheduledImport::fetchList( 0, null, array( 'handler' => 'alboimporthandler' ) )
+            );
+            if ( count( $scheduledImport ) == 0 )
+            {
+                throw new Exception( "Non è attivato alcun importatore dell'albo telematico trentino" );
+            }
             $helperClass = eZINI::instance( 'alboimporthandler.ini' )->variable( 'HelperSettings', 'HelperClass' );            
             if ( class_exists( $helperClass ) )
             {
@@ -27,8 +35,22 @@ class OCIniToolAlbotelematico implements OCIniToolInterface
                 throw new Exception( "$helperClass non implementa l'interfaccia corretta" );
             }
             
-            $this->locations = $this->helper->getDefaultLocations();            
             $http = eZHTTPTool::instance();
+            
+            if( $http->hasPostVariable( 'SaveLocations' ) )
+            {
+                $locations = $http->postVariable( 'AlboLocations' );
+                if ( !$this->helper->saveINILocations( $locations ) )
+                {
+                    $this->error = "Non riesco a salvare le configurazioni: il file potrebbe non essere scrivibile";
+                }
+                elseif ( $this->module instanceof eZModule )
+                {
+                    return $this->module->redirectTo( 'inigui/tools/albolocation' );
+                }
+            }
+            
+            $this->locations = $this->helper->getDefaultLocations();                        
             if( $http->hasPostVariable( 'test' ) )
             {
                 $rawText = $http->postVariable( 'test' );

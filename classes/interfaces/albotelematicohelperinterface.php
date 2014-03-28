@@ -104,4 +104,6 @@ interface AlbotelematicoHelperInterface
     
     function setPublishedTimestamp();
 
+    function saveINILocations( $data );
+
 }

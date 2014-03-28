@@ -20,11 +20,15 @@
 </div>
 {/if}    
 
+<form method="post" action={'inigui/tools/albolocation'|ezurl()}>
 <table class="list" width="100%" cellspacing="0" cellpadding="0" border="0">
     <tr>
         <th>Tipo atto in Albo telematico</th>
         <th>Classe OpenPa</th>
-        <th>Collocazione</th>
+        <th>
+            Collocazione
+            <small>(Indicare L'ID nodo)</small>
+        </th>
     </tr>
     {foreach $location_hash as $tipo => $hash sequence array( 'bgdark', 'bglight' ) as $sequence}
         {foreach $hash as $class => $location}
@@ -48,9 +52,11 @@
                         <li>
                         {def $locationNode = fetch( content, node, hash( 'node_id', $node_id ))}
                         {if $locationNode}
-                            <a href={$locationNode.url_alias|ezurl}>{$locationNode.name|wash()} ({$node_id})</a>
+                            <a href={$locationNode.url_alias|ezurl}>{$locationNode.name|wash()}</a>
+                            <input size="5" type="text" name="AlboLocations[{$tipo}][]" value="{$locationNode.node_id}" />
                         {else}
                             <strong>Non specificato</strong>
+                            <input size="5" type="text" name="AlboLocations[{$tipo}][]" value="" />
                         {/if}
                         {undef $locationNode}
                         </li>
@@ -60,4 +66,12 @@
             </tr>
         {/foreach}
     {/foreach}
+    <tr>
+        <td colspan="3">
+            <p class="text-right">
+                <input class="button" type="submit" name="SaveLocations" value="Salva" />
+            </p>
+        </td>        
+    </tr>
 </table>
+</form>
