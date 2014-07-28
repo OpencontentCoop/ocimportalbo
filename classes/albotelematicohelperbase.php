@@ -83,11 +83,16 @@ class AlbotelematicoHelperBase
         unset( $this->content );
         $this->currentObject = null;
     }
-    
+
+    public static function buildRemoteId( $string )
+    {
+        return 'at_' . $string;
+    }
+
     public function getRemoteID()
     {
         $id = (string) $this->row->id_atto;
-        return 'at_' . $id;
+        return self::buildRemoteId( $id );
         //return md5( $id );
     }
     
@@ -679,4 +684,48 @@ class AlbotelematicoHelperBase
     {
         return false;
     }
+
+    /**
+     * @param $identifier
+     *
+     * @return int
+     * @throws Exception
+     */
+    public static function getStateID( $identifier )
+    {
+        $group = eZContentObjectStateGroup::fetchByIdentifier( 'albotelematico' );
+        if ( $group instanceof eZContentObjectStateGroup )
+        {
+            $status = eZContentObjectState::fetchByIdentifier( $identifier, $group->attribute( 'id' ) );
+            if ( $status instanceof eZContentObjectState )
+            {
+                return $status->attribute( 'id' );
+            }
+            else
+            {
+                throw new Exception( "Stato {$identifier} non trovato"  );
+            }
+
+        }
+        else
+        {
+            throw new Exception( "Gruppo di stati \"albotelematico\" non trovato"  );
+        }
+    }
+
+    public function setState( $objectID, $identifier )
+    {
+        $id = $this->getStateID( $identifier );
+        if ( eZOperationHandler::operationIsAvailable( 'content_updateobjectstate' ) )
+        {
+            eZOperationHandler::execute( 'content', 'updateobjectstate',
+                array( 'object_id'     => $objectID,
+                       'state_id_list' => array( $id ) ) );
+        }
+        else
+        {
+            eZContentOperationCollection::updateObjectState( $objectID, array( $id ) );
+        }
+    }
+
 }

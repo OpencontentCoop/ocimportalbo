@@ -2,8 +2,9 @@
 
 interface AlbotelematicoHelperInterface
 {
-    /*
+    /**
      * Chiamata dal sourcehandler carica argomenti e opzioni nell'helper
+     *
      */
     function loadArguments( $arguments, $options );
 
@@ -67,8 +68,10 @@ interface AlbotelematicoHelperInterface
      */
     function prepareValues();
 
-    /*
+    /**
      * popola l'oggetto
+     *
+     * @return SQLIContent
      */
     function fillContent();
 
@@ -93,15 +96,15 @@ interface AlbotelematicoHelperInterface
     function registerImport();
     
     /*
-     * REgistra errore
+     * Registra errore
      */
     function registerError( $error );
     
     /*
-     * REgistra cancellazione
+     * Registra cancellazione
      */
     function registerDelete( $id, $name );
-    
+
     function setPublishedTimestamp();
 
     function saveINILocations( $data );
