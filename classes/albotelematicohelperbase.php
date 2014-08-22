@@ -506,10 +506,10 @@ class AlbotelematicoHelperBase
     
     function tempFile( $url )
     {        
-        if ( eZHTTPTool::getDataByURL( $url, true ) )
+        if ( OpenPABase::getDataByURL( $url, true ) )
         {                            
             $name = basename( $url );
-            $file = eZFile::create( $name, $this->tempVarDir, eZHTTPTool::getDataByURL( $url ) );
+            $file = eZFile::create( $name, $this->tempVarDir, OpenPABase::getDataByURL( $url ) );
             $filePath = rtrim( $this->tempVarDir, '/' ) . '/' . $name;
             $this->removeFiles[] = $filePath;        
             return $filePath;
