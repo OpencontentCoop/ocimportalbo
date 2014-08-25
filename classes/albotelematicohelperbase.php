@@ -728,4 +728,71 @@ class AlbotelematicoHelperBase
         }
     }
 
+    public static function createStates()
+    {
+        $groups = array(
+            array(
+                'identifier' => 'albotelematico',
+                'name' => 'Albo telematico',
+                'states' => array(
+                    "visibile" => "Visibile",
+                    "archivioricercabile" => "Archivio ricercabile",
+                    "archiviononricercabile" => "Archivio non ricercabile",
+                    "nonvisibile" => "Non visibile"
+                )
+            )
+        );
+
+        foreach( $groups as $group )
+        {
+            $stateGroup = eZContentObjectStateGroup::fetchByIdentifier( $group['identifier'] );
+            if ( !$stateGroup instanceof eZContentObjectStateGroup )
+            {
+                $stateGroup = new eZContentObjectStateGroup();
+                $stateGroup->setAttribute( 'identifier', $group['identifier'] );
+                $stateGroup->setAttribute( 'default_language_id', 2 );
+
+                $translations = $stateGroup->allTranslations();
+                foreach( $translations as $translation )
+                {
+                    $translation->setAttribute( 'name', $group['name'] );
+                    $translation->setAttribute( 'description', $group['name'] );
+                }
+
+                $messages = array();
+                $isValid = $stateGroup->isValid( $messages );
+                if ( !$isValid )
+                {
+                    throw new Exception( implode( ',', $messages ) );
+                }
+                $stateGroup->store();
+            }
+
+            foreach( $group['states'] as $StateIdentifier => $StateName )
+            {
+                $stateObject = $stateGroup->stateByIdentifier( $StateIdentifier );
+                if ( !$stateObject instanceof eZContentObjectState )
+                {
+                    $stateObject = $stateGroup->newState( $StateIdentifier );
+                }
+                $stateObject->setAttribute( 'default_language_id', 2 );
+                $stateTranslations = $stateObject->allTranslations();
+                foreach( $stateTranslations as $translation )
+                {
+                    $translation->setAttribute( 'name', $StateName );
+                    $translation->setAttribute( 'description', $StateName );
+                }
+                $messages = array();
+                $isValid = $stateObject->isValid( $messages );
+                if ( !$isValid )
+                {
+                    throw new Exception( implode( ',', $messages ) );
+                }
+                $stateObject->store();
+            }
+        }
+
+    }
+
+
 }

@@ -7,7 +7,13 @@ $script = eZScript::instance( array( 'description' => ( "OpenPA Fix data convoca
                                      'use-extensions' => true ) );
 
 $script->startup();
-$script->getOptions();
+$options = $script->getOptions(
+    '[original_node:]',
+    '',
+    array(
+        'original_node'  => 'Nodo "Albo Pretorio" da migrare nella nuova classe'
+    )
+);
 $script->initialize();
 $script->setUseDebugAccumulators( true );
 
@@ -23,20 +29,72 @@ try
     );
     if ( count( $scheduledImports ) == 0 )
     {
-        throw new Exception( "Non è attivato alcun importatore dell'albo telematico trentino" );
+        //throw new Exception( "Non è attivato alcun importatore dell'albo telematico trentino" );
+    }
+    else
+    {
+        $scheduledImport = $scheduledImports[0];
+        $options = $scheduledImport->attribute( 'options' );
+        $comune = $options['comune'];
     }
 
-    $scheduledImport = $scheduledImports[0];
-    $options = $scheduledImport->attribute( 'options' );
-    $comune = $options['comune'];
-
-    // crea stati se non esistono @todo per ora solleva eccezione se non esiste 'visibile'
+    ########################################################################################
+    ## crea stati se non esistono
+    ########################################################################################
     OpenPALog::output( "Controllo presenza stati" );
-    AlbotelematicoHelperBase::getStateID( 'visibile' );
+    try
+    {
+        AlbotelematicoHelperBase::getStateID( 'visibile' );
+    }
+    catch( Exception $e )
+    {
+        AlbotelematicoHelperBase::createStates();
+    }
 
-    // crea policy sugli stati @todo
+    ########################################################################################
+    ##  crea policy sugli stati
+    ########################################################################################
+    $anonymousRole = eZRole::fetchByName( 'Anonymous' );
+    if ( $anonymousRole instanceof eZRole )
+    {
+        $do = true;
+        foreach( $anonymousRole->attribute( 'policies' ) as $policy )
+        {
+            if ( $policy->attribute( 'module_name' ) == 'content' &&
+                $policy->attribute( 'function_name' ) == 'read' )
+            {
+                foreach( $policy->attribute('limitations') as $limitation )
+                {
+                    if ( $limitation->attribute( 'identifier' ) == 'StateGroup_albotelematico' )
+                    {
+                        $do = false;
+                        break;
+                    }
+                }
+            }
+        }
+        if ( $do )
+        {
+            $anonymousRole->appendPolicy(
+                'content',
+                'read',
+                array( 'StateGroup_albotelematico' => array(
+                    AlbotelematicoHelperBase::getStateID( 'visibile' ),
+                    AlbotelematicoHelperBase::getStateID( 'archivioricercabile' ),
+                    AlbotelematicoHelperBase::getStateID( 'archiviononricercabile' )
+                ) )
+            );
+            $anonymousRole->store();
+        }
+    }
+    else
+    {
+        throw new Exception( 'Non trovo il ruolo "Anonymous"' );
+    }
 
-    // cerco la frontpage di nome Albo Pretorio
+    ########################################################################################
+    ## cerco la frontpage di nome Albo Pretorio
+    ########################################################################################
     OpenPALog::output( "Conversione frontpage Albo pretorio" );
     $frontPageClassId = eZContentClass::classIDByIdentifier( 'frontpage' );
     $search = eZSearch::search( "Albo Pretorio", array( 'SearchContentClassID' => $frontPageClassId ) );
@@ -45,24 +103,42 @@ try
         /** @var eZContentObjectTreeNode $original */
         $original = $search['SearchResult'][0];
     }
-    else
+    elseif ( $options['original_node'] )
+    {
+        $original = eZContentObjectTreeNode::fetch( $options['original_node'] );
+    }
+
+    if ( !$original instanceof eZContentObjectTreeNode )
     {
         throw new Exception( "Non trovo l'albo pretorio: specifica l'opzione --original_node=<node_id>" );
     }
-
-    // cmigrazione container
+die('ciao');
+    ########################################################################################
+    ## migrazione container
+    ########################################################################################
     $destinationClass = ObjectAlbotelematicoHelper::CONTAINER_CLASS_IDENTIFIER;
     $mapping = array();
-    foreach( $original->attribute( 'data_map' ) As $key => $value ) $mapping[$key] = $key;
+    foreach( $original->attribute( 'data_map' ) As $key => $value )
+    {
+        $mapping[$key] = $key;
+    }
+
+    if ( !class_exists( 'conversionFunctions' ) )
+    {
+        throw new Exception( "Libreria 'conversionFunctions' non trovata" );
+    }
 
     /** @var eZContentObjectTreeNode $container */
-    $container = conversionFunctions::convertObject( $original->attribute('contentobject_id'), $destinationClass, $mapping );
+    $conversionFunctions = new conversionFunctions();
+    $container = $conversionFunctions->convertObject( $original->attribute('contentobject_id'), $destinationClass, $mapping );
     if ( !$container )
     {
         throw new Exception( "Errore nella conversione dell'oggetto contentitore" );
     }
 
-    // popolamento container
+    ########################################################################################
+    ## popolamento container
+    ########################################################################################
     /** @var eZContentObject $containerObject */
     $containerObject = $container->attribute( 'object' );
     $containerObjectDataMap = $containerObject->attribute( 'data_map' );
@@ -109,20 +185,28 @@ try
         }
     }
 
-    // eliminazione importatori attuali
+    ########################################################################################
+    ## eliminazione importatori attuali
+    ########################################################################################
     OpenPALog::output( "Eliminazione importatori attuali obsoleti" );
     foreach( $scheduledImports as $scheduledImport )
     {
         $scheduledImport->remove();
     }
 
-    // attivazione workflow  @todo
+    ########################################################################################
+    ## attivazione workflow
+    ########################################################################################
 
-    // schedulazione importer
+    ########################################################################################
+    ## schedulazione importer
+    ########################################################################################
     OpenPALog::output( "Schedulazione importer" );
     ObjectAlbotelematicoHelper::appendImporterByObjectId( $containerObject->attribute( 'id' ) );
 
-    // salvo handler in ini
+    ########################################################################################
+    ## salvo handler in ini
+    ########################################################################################
     OpenPALog::output( "Salvataggio configurazioni helper" );
     $siteAccess = eZSiteAccess::current();
     $path = "settings/siteaccess/{$siteAccess['name']}/";
