@@ -192,11 +192,9 @@ class AlbotelematicoHelperBase
                 {
                     $simplexml_temp->addAttribute($attr_key, $attr_value);
                 }
+                $firstLoop = false;
+                self::append_simplexml( $simplexml_temp, $simplexml_child );
             }
-
-            $firstLoop = false;
-
-            self::append_simplexml( $simplexml_temp, $simplexml_child );
         }
 
         unset( $firstLoop );
@@ -693,6 +691,10 @@ class AlbotelematicoHelperBase
      */
     public static function getStateID( $identifier )
     {
+        if ( $identifier == 'archviononricercabile' ) // albotelematico typo...
+        {
+            $identifier = 'archiviononricercabile';
+        }
         $group = eZContentObjectStateGroup::fetchByIdentifier( 'albotelematico' );
         if ( $group instanceof eZContentObjectStateGroup )
         {
@@ -713,9 +715,9 @@ class AlbotelematicoHelperBase
         }
     }
 
-    public function setState( $objectID, $identifier )
+    public static function setState( $objectID, $identifier )
     {
-        $id = $this->getStateID( $identifier );
+        $id = self::getStateID( $identifier );
         if ( eZOperationHandler::operationIsAvailable( 'content_updateobjectstate' ) )
         {
             eZOperationHandler::execute( 'content', 'updateobjectstate',

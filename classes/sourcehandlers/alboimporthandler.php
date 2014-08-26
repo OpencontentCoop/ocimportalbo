@@ -32,6 +32,9 @@ class AlboImportHandler extends SQLIImportAbstractHandler implements ISQLIImport
 
     private $rowIndex = 0;
     private $rowCount;
+    /**
+     * @var AlbotelematicoHelperInterface
+     */
     private $helper;
 
     private $registerMail = array();
@@ -154,7 +157,7 @@ class AlboImportHandler extends SQLIImportAbstractHandler implements ISQLIImport
             $this->helper->registerError( $e->getMessage() );
         }
 
-        return;
+        return true;
     }
     
     public function sendMail()

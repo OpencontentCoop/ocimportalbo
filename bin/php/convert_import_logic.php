@@ -19,6 +19,10 @@ $script->setUseDebugAccumulators( true );
 
 OpenPALog::setOutputLevel( OpenPALog::ALL );
 
+$user = eZUser::fetchByName( 'admin' );
+eZUser::setCurrentlyLoggedInUser( $user , $user->attribute( 'contentobject_id' ) );
+
+$db = eZDB::instance();
 
 try
 {
@@ -29,13 +33,13 @@ try
     );
     if ( count( $scheduledImports ) == 0 )
     {
-        //throw new Exception( "Non è attivato alcun importatore dell'albo telematico trentino" );
+        throw new Exception( "Non è attivato alcun importatore dell'albo telematico trentino" );
     }
     else
     {
         $scheduledImport = $scheduledImports[0];
-        $options = $scheduledImport->attribute( 'options' );
-        $comune = $options['comune'];
+        $scheduledOptions = $scheduledImport->attribute( 'options' );
+        $comune = $scheduledOptions['comune'];
     }
 
     ########################################################################################
@@ -92,97 +96,152 @@ try
         throw new Exception( 'Non trovo il ruolo "Anonymous"' );
     }
 
-    ########################################################################################
-    ## cerco la frontpage di nome Albo Pretorio
-    ########################################################################################
-    OpenPALog::output( "Conversione frontpage Albo pretorio" );
-    $frontPageClassId = eZContentClass::classIDByIdentifier( 'frontpage' );
-    $search = eZSearch::search( "Albo Pretorio", array( 'SearchContentClassID' => $frontPageClassId ) );
-    if ( $search['SearchCount'] > 0 )
+    $destinationClassId = ObjectAlbotelematicoHelper::CONTAINER_CLASS_IDENTIFIER;
+    $destinationClass = eZContentClass::fetchByIdentifier( $destinationClassId );
+    if ( !$destinationClass instanceof eZContentClass )
     {
+        //throw new Exception( "Classe $destinationClassId non trovata" );
+        $tool = new OpenPAClassTools( $destinationClassId, true );
+        $tool->compare();
+        $destinationClass = $tool->getLocale();
+    }
+
+    if ( $destinationClass->objectCount() == 0 )
+    {
+        ########################################################################################
+        ## cerco la frontpage di nome Albo Pretorio
+        ########################################################################################
+        OpenPALog::output( "Conversione frontpage Albo pretorio" );
+
         /** @var eZContentObjectTreeNode $original */
-        $original = $search['SearchResult'][0];
-    }
-    elseif ( $options['original_node'] )
-    {
-        $original = eZContentObjectTreeNode::fetch( $options['original_node'] );
-    }
-
-    if ( !$original instanceof eZContentObjectTreeNode )
-    {
-        throw new Exception( "Non trovo l'albo pretorio: specifica l'opzione --original_node=<node_id>" );
-    }
-die('ciao');
-    ########################################################################################
-    ## migrazione container
-    ########################################################################################
-    $destinationClass = ObjectAlbotelematicoHelper::CONTAINER_CLASS_IDENTIFIER;
-    $mapping = array();
-    foreach( $original->attribute( 'data_map' ) As $key => $value )
-    {
-        $mapping[$key] = $key;
-    }
-
-    if ( !class_exists( 'conversionFunctions' ) )
-    {
-        throw new Exception( "Libreria 'conversionFunctions' non trovata" );
-    }
-
-    /** @var eZContentObjectTreeNode $container */
-    $conversionFunctions = new conversionFunctions();
-    $container = $conversionFunctions->convertObject( $original->attribute('contentobject_id'), $destinationClass, $mapping );
-    if ( !$container )
-    {
-        throw new Exception( "Errore nella conversione dell'oggetto contentitore" );
-    }
-
-    ########################################################################################
-    ## popolamento container
-    ########################################################################################
-    /** @var eZContentObject $containerObject */
-    $containerObject = $container->attribute( 'object' );
-    $containerObjectDataMap = $containerObject->attribute( 'data_map' );
-
-    if ( strpos( OpenPABase::getFrontendSiteaccessName(), '_frontend' ) === false )
-    {
-        throw new Exception( "Sei in entilocali? Occhio al vecchio handler... " ); //@todo
-    }
-    $oldHandler = new OpenPaAlbotelematicoHelper();
-    $defaultLocations = $oldHandler->getDefaultLocations();
-    foreach( $defaultLocations as $nomeAlbo => $values )
-    {
-        $trans = eZCharTransform::instance();
-        $identifier = $trans->transformByGroup( $nomeAlbo, 'identifier' );
-        /** @var eZContentObjectAttribute $attribute */
-        $attribute = $containerObjectDataMap[$identifier];
-        if ( isset( $attribute )
-             && $attribute instanceof eZContentObjectAttribute )
+        $original = false;
+        if ( isset( $options['original_node'] ) )
         {
-            $objectIds = $nodeIds = array();
-            foreach( $values as $ezId => $parameters )
+            $original = eZContentObjectTreeNode::fetch( $options['original_node'] );
+        }
+        else
+        {
+            $frontPageClassId = eZContentClass::classIDByIdentifier( 'frontpage' );
+            $search = eZSearch::search( "Albo pretorio", array( 'SearchContentClassID' => $frontPageClassId ) );
+            if ( $search['SearchCount'] > 0 )
             {
-                $nodeIds = $parameters['node_ids'];
-            }
-            if ( !empty( $nodeIds ) )
-            {
-                foreach( $nodeIds as $nodeId )
-                {
-                    $node = eZContentObjectTreeNode::fetch( $nodeId );
-                    if ( $node instanceof eZContentObjectTreeNode )
-                    {
-                        $objectIds[] = $node->attribute( 'contentobject_id' );
-                    }
-                }
-            }
-            if ( !empty( $objectIds ) )
-            {
-                $db = eZDB::instance();
-                $db->begin();
-                $attribute->fromString( implode( '-', $objectIds ) );
-                $attribute->store();
-                $db->commit();
+                $original = $search['SearchResult'][0];
             }
         }
+
+        if ( !$original instanceof eZContentObjectTreeNode )
+        {
+            throw new Exception( "Non trovo l'albo pretorio: specifica l'opzione --original_node=<node_id>" );
+        }
+
+        ########################################################################################
+        ## migrazione container
+        ########################################################################################
+        $mapping = array();
+        foreach( $original->attribute( 'data_map' ) As $key => $value )
+        {
+            $mapping[$key] = $key;
+        }
+
+        foreach( $destinationClass->dataMap() as $identifier => $value )
+        {
+            if ( !isset( $mapping[$identifier] ) )
+            {
+                $mapping[$identifier] = '';
+            }
+        }
+
+        if ( !class_exists( 'conversionFunctions' ) )
+        {
+            throw new Exception( "Libreria 'conversionFunctions' non trovata" );
+        }
+
+        /** @var eZContentObjectTreeNode $container */
+        $conversionFunctions = new conversionFunctions();
+        $containerId = $original->attribute('contentobject_id');
+        $container = $conversionFunctions->convertObject( $containerId, $destinationClassId, $mapping );
+        if ( !$container )
+        {
+            throw new Exception( "Errore nella conversione dell'oggetto contentitore" );
+        }
+        eZContentObject::clearCache();
+
+        ########################################################################################
+        ## popolamento container
+        ########################################################################################
+        /** @var eZContentObject $containerObject */
+        $containerObject = eZContentObject::fetch( $containerId );
+        $containerObjectDataMap = $containerObject->attribute( 'data_map' );
+
+        if ( strpos( OpenPABase::getFrontendSiteaccessName(), '_frontend' ) === false )
+        {
+            throw new Exception( "Sei in entilocali? Occhio al vecchio handler... " ); //@todo
+        }
+        $oldHandler = new OpenPaAlbotelematicoHelper();
+        $defaultLocations = $oldHandler->getDefaultLocations();
+
+        $db->begin();
+        foreach( $defaultLocations as $nomeAlbo => $values )
+        {
+            $trans = eZCharTransform::instance();
+            $identifier = $trans->transformByGroup( $nomeAlbo, 'identifier' );
+            /** @var eZContentObjectAttribute $attribute */
+            $attribute = $containerObjectDataMap[$identifier];
+            if ( isset( $attribute )
+                 && $attribute instanceof eZContentObjectAttribute )
+            {
+                $objectIds = $nodeIds = array();
+                foreach( $values as $ezId => $parameters )
+                {
+                    $nodeIds = $parameters['node_ids'];
+                }
+                if ( !empty( $nodeIds ) )
+                {
+                    foreach( $nodeIds as $nodeId )
+                    {
+                        $node = eZContentObjectTreeNode::fetch( $nodeId );
+                        if ( $node instanceof eZContentObjectTreeNode )
+                        {
+                            $objectIds[] = $node->attribute( 'contentobject_id' );
+                        }
+                    }
+                }
+                if ( !empty( $objectIds ) )
+                {
+                    $attribute->fromString( implode( '-', $objectIds ) );
+                    $attribute->store();
+                }
+            }
+        }
+        if ( isset( $comune ) )
+        {
+            $identifier = ObjectAlbotelematicoHelper::$identifierMap['current_feed'];
+            $attribute = $containerObjectDataMap[$identifier];
+            if ( isset( $attribute )
+                 && $attribute instanceof eZContentObjectAttribute )
+            {
+                $attribute->fromString( "http://www.albotelematico.tn.it/bacheca/{$comune}" );
+                $attribute->store();
+            }
+            $identifier = ObjectAlbotelematicoHelper::$identifierMap['archive_feed'];
+            $attribute = $containerObjectDataMap[$identifier];
+            if ( isset( $attribute )
+                 && $attribute instanceof eZContentObjectAttribute )
+            {
+                $attribute->fromString( "http://www.albotelematico.tn.it/archivio/{$comune}" );
+                $attribute->store();
+            }
+        }
+        $db->commit();
+    }
+    elseif ( $destinationClass->objectCount() == 1 )
+    {
+        $list = $destinationClass->objectList();
+        $containerObject = $list[0];
+    }
+    else
+    {
+        throw new Exception( "Trovati più di un oggetto di classe " . ObjectAlbotelematicoHelper::CONTAINER_CLASS_IDENTIFIER . ": non è possibile effettuare l'aggiornamento automatico" );
     }
 
     ########################################################################################
@@ -201,8 +260,15 @@ die('ciao');
     ########################################################################################
     ## schedulazione importer
     ########################################################################################
-    OpenPALog::output( "Schedulazione importer" );
-    ObjectAlbotelematicoHelper::appendImporterByObjectId( $containerObject->attribute( 'id' ) );
+    if ( $containerObject instanceof eZContentObject )
+    {
+        OpenPALog::output( "Schedulazione importer" );
+        $base = new AlbotelematicoHelperBase();
+        $base->getCreatorID(); // crea utente albotelematico se non esiste
+        $user = eZUser::fetchByName( 'albotelematico' );
+        eZUser::setCurrentlyLoggedInUser( $user , $user->attribute( 'contentobject_id' ) );
+        ObjectAlbotelematicoHelper::appendImporterByObjectId( $containerObject->attribute( 'id' ) );
+    }
 
     ########################################################################################
     ## salvo handler in ini
