@@ -95,6 +95,11 @@ class ObjectAlbotelematicoHelper extends AlbotelematicoHelperBase implements Alb
             'test' => false
         );
     }
+
+    function getSectionID()
+    {
+        return parent::getSection()->attribute( 'id' );
+    }
     
     public function getClassIdentifier()
     {
@@ -225,28 +230,70 @@ class ObjectAlbotelematicoHelper extends AlbotelematicoHelperBase implements Alb
         //http://www.albotelematico.tn.it/archivio_stato/ala/exc.xml
         if ( eZHTTPTool::getDataByUrl( $feed, true ) )
         {
+            $db = eZDB::instance();
+            $db->setErrorHandling( eZDB::ERROR_HANDLING_EXCEPTIONS );
+
+            $isCli = isset( $_SERVER['argv'] );
+            $output = null;
+            $progressBar = null;
+            $i = 0;
+
             $xmlOptions = new SQLIXMLOptions( array( 'xml_path' => $feed,
-                                                   'xml_parser' => 'simplexml' ));
+                                                     'xml_parser' => 'simplexml' ));
             $parser = new SQLIXMLParser( $xmlOptions );
             $parsed = $parser->parse();
             $dataCount = (int) $parsed->atti->numero_atti;
             $data = $parsed->atti->atto;
+
+            $count = $dataCount;
+            if( $isCli && $count > 0 )
+            {
+                // Progress bar implementation
+                $output = new ezcConsoleOutput();
+                $output->outputLine( '' );
+                $output->outputLine( 'Correzione stato' );
+                $progressBarOptions = array(
+                    'emptyChar'         => ' ',
+                    'barChar'           => '='
+                );
+                $progressBar = new ezcConsoleProgressbar( $output, $count, $progressBarOptions );
+                $progressBar->start();
+            }
+
             foreach( $data as $atto )
             {
-                $id = (string) $atto->id_atto;
-                $state = strtolower( $atto->stato_atto );
-                $remoteId = self::buildRemoteId( $id );
-                $object = eZPersistentObject::fetchObject(
-                    eZContentObject::definition(),
-                    array( 'id' ),
-                    array( 'remote_id' => $remoteId ),
-                    false
-                );
-                if ( !empty( $object ) )
+                if( $isCli )
                 {
-                    self::setState( $object['id'], $state );
-                    eZContentObject::clearCache( array( $object['id'] ) );
+                    $progressBar->advance();
                 }
+                try
+                {
+                    $id = (string) $atto->id_atto;
+                    $state = strtolower( $atto->stato_atto );
+                    $remoteId = self::buildRemoteId( $id );
+                    $object = eZPersistentObject::fetchObject(
+                        eZContentObject::definition(),
+                        array( 'id' ),
+                        array( 'remote_id' => $remoteId ),
+                        false
+                    );
+                    if ( !empty( $object ) )
+                    {
+                        self::checkSection( $object['id'] );
+                        self::setState( $object['id'], $state );
+                        eZContentObject::clearCache( array( $object['id'] ) );
+                    }
+                }
+                catch( eZDBException $e )
+                {
+                    $db->rollback();
+                }
+            }
+
+            if( $isCli && $count > 0 )
+            {
+                $progressBar->finish();
+                $output->outputLine();
             }
         }
         else
@@ -254,6 +301,31 @@ class ObjectAlbotelematicoHelper extends AlbotelematicoHelperBase implements Alb
             throw new AlboFatalException( 'Url non risolto: ' . $feed );
         }
     }
+
+    public static function checkSection( $objectId )
+    {
+        $object = eZContentObject::fetch( $objectId );
+        $selectedSectionID = parent::getSection()->attribute( 'id' );
+        if ( $object instanceOf eZContentObject && $object->attribute( 'section_id' ) != $selectedSectionID )
+        {
+            if ( eZOperationHandler::operationIsAvailable( 'content_updatesection' ) )
+            {
+                $operationResult = eZOperationHandler::execute( 'content',
+                    'updatesection',
+                    array(
+                        'node_id'             => $object->attribute( 'main_node_id' ),
+                        'selected_section_id' => $selectedSectionID ),
+                    null,
+                    true );
+
+            }
+            else
+            {
+                eZContentOperationCollection::updateSection( $object->attribute( 'main_node_id' ), $selectedSectionID );
+            }
+        }
+    }
+
 
     public static function appendImporterByObjectId( $objectId )
     {

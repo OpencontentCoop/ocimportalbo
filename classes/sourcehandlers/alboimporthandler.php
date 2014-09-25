@@ -107,6 +107,9 @@ class AlboImportHandler extends SQLIImportAbstractHandler implements ISQLIImport
             throw new Exception( "helper non implementa l'interfaccia corretta" );
         }
 
+        $db = eZDB::instance();
+        $db->setErrorHandling( eZDB::ERROR_HANDLING_EXCEPTIONS );
+
         try
         {
             if ( !$this->helper->canProcessRow( $row  ) )
@@ -144,6 +147,13 @@ class AlboImportHandler extends SQLIImportAbstractHandler implements ISQLIImport
             
             $this->helper->registerImport();
             unset( $content );
+        }
+        catch( eZDBException $e )
+        {
+            $this->helper->rollback();
+            $this->registerMail[] = array( 'row' => $row, 'exception' => $e );
+            $this->cli->error( $e->getMessage() );
+            $db->rollback();
         }
         catch( AlboFatalException $e )
         {            

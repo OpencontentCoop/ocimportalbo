@@ -2,6 +2,8 @@
 
 class AlbotelematicoHelperBase
 {
+    const SECTION_IDENTIFIER = 'albotelematicotrentino';
+
     public $ini;
     public $tempVarDir;
     public $tempLogDir;
@@ -427,10 +429,16 @@ class AlbotelematicoHelperBase
         return $this->mapAttributes;
     }
 
+    function getSectionID()
+    {
+        return 0; //vedi eZContentClass::instantiate
+    }
+
     function fillContent()
     {
         $contentOptions = new SQLIContentOptions( array(
             'creator_id'            => $this->getCreatorID(),
+            'section_id'            => $this->getSectionID(),
             'class_identifier'      => $this->getClassIdentifier(),
             'remote_id'             => $this->getRemoteID()
         ) );
@@ -691,7 +699,21 @@ class AlbotelematicoHelperBase
      */
     public static function getStateID( $identifier )
     {
-        if ( $identifier == 'archviononricercabile' ) // albotelematico typo...
+        $status = self::getState( $identifier );
+        if ( $status instanceof eZContentObjectState )
+        {
+            return $status->attribute( 'id' );
+        }
+    }
+
+    /**
+     * @param string $identifier
+     * @return eZContentObjectState
+     * @throws Exception
+     */
+    public static function getState( $identifier )
+    {
+        if ( $identifier == 'archviononricercabile' ) // fix albotelematico typo...
         {
             $identifier = 'archiviononricercabile';
         }
@@ -701,7 +723,7 @@ class AlbotelematicoHelperBase
             $status = eZContentObjectState::fetchByIdentifier( $identifier, $group->attribute( 'id' ) );
             if ( $status instanceof eZContentObjectState )
             {
-                return $status->attribute( 'id' );
+                return $status;
             }
             else
             {
@@ -730,18 +752,23 @@ class AlbotelematicoHelperBase
         }
     }
 
+    public static function objectStatesArray()
+    {
+        return array(
+            "visibile" => "Visibile",
+            "archivioricercabile" => "Archivio ricercabile",
+            "archiviononricercabile" => "Archivio non ricercabile",
+            "nonvisibile" => "Non visibile"
+        );
+    }
+
     public static function createStates()
     {
         $groups = array(
             array(
                 'identifier' => 'albotelematico',
                 'name' => 'Albo telematico',
-                'states' => array(
-                    "visibile" => "Visibile",
-                    "archivioricercabile" => "Archivio ricercabile",
-                    "archiviononricercabile" => "Archivio non ricercabile",
-                    "nonvisibile" => "Non visibile"
-                )
+                'states' => self::objectStatesArray()
             )
         );
 
@@ -793,8 +820,36 @@ class AlbotelematicoHelperBase
                 $stateObject->store();
             }
         }
-
     }
+
+    /**
+     * @return eZSection
+     * @throws Exception
+     */
+    public static function getSection()
+    {
+        $section = eZPersistentObject::fetchObject( eZSection::definition(), null, array( "identifier" => self::SECTION_IDENTIFIER ), true );
+        if ( !$section instanceOf eZSection )
+        {
+            throw new Exception( "Section {self::SECTION_IDENTIFIER} non trovata" );
+        }
+        return $section;
+    }
+
+    public static function createSection()
+    {
+        $section = eZPersistentObject::fetchObject( eZSection::definition(), null, array( "identifier" => self::SECTION_IDENTIFIER ), true );
+        if ( !$section instanceOf eZSection )
+        {
+            $section = new eZSection( array() );
+            $section->setAttribute( 'name', 'Albo Telematico Trentino' );
+            $section->setAttribute( 'identifier', self::SECTION_IDENTIFIER );
+            $section->setAttribute( 'navigation_part_identifier', 'ezcontentnavigationpart' );
+            $section->store();
+        }
+        return $section;
+    }
+
 
 
 }

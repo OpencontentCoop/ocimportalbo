@@ -6,7 +6,7 @@ class AddAlboImporterType extends eZWorkflowEventType
 
     public function __construct()
     {
-        parent::eZWorkflowEventType( AddAlboImporterType::WORKFLOW_TYPE_STRING, 'Schedula l\'importatore per gli getti di classe Albo Telematico Trentino' );
+        parent::eZWorkflowEventType( AddAlboImporterType::WORKFLOW_TYPE_STRING, 'Schedula l\'importatore per gli ogetti di classe Albo Telematico Trentino' );
     }
 
     /**

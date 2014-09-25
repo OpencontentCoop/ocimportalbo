@@ -10,9 +10,7 @@ $script->startup();
 $options = $script->getOptions(
     '[original_node:]',
     '',
-    array(
-        'original_node'  => 'Nodo "Albo Pretorio" da migrare nella nuova classe'
-    )
+    array( 'original_node'  => 'Nodo "Albo Pretorio" da migrare nella nuova classe')
 );
 $script->initialize();
 $script->setUseDebugAccumulators( true );
@@ -40,6 +38,16 @@ try
         $scheduledImport = $scheduledImports[0];
         $scheduledOptions = $scheduledImport->attribute( 'options' );
         $comune = $scheduledOptions['comune'];
+    }
+
+    OpenPALog::output( "Controllo presenza sezione" );
+    try
+    {
+        AlbotelematicoHelperBase::getSection();
+    }
+    catch( Exception $e )
+    {
+        AlbotelematicoHelperBase::createSection();
     }
 
     ########################################################################################
@@ -82,11 +90,14 @@ try
             $anonymousRole->appendPolicy(
                 'content',
                 'read',
-                array( 'StateGroup_albotelematico' => array(
-                    AlbotelematicoHelperBase::getStateID( 'visibile' ),
-                    AlbotelematicoHelperBase::getStateID( 'archivioricercabile' ),
-                    AlbotelematicoHelperBase::getStateID( 'archiviononricercabile' )
-                ) )
+                array(
+                    'StateGroup_albotelematico' => array(
+                        AlbotelematicoHelperBase::getStateID( 'visibile' ),
+                        AlbotelematicoHelperBase::getStateID( 'archivioricercabile' ),
+                        AlbotelematicoHelperBase::getStateID( 'archiviononricercabile' )
+                    ),
+                    'Section' => array( AlbotelematicoHelperBase::getSection()->attribute( 'id' ) )
+                )
             );
             $anonymousRole->store();
         }
@@ -103,7 +114,14 @@ try
         //throw new Exception( "Classe $destinationClassId non trovata" );
         $tool = new OpenPAClassTools( $destinationClassId, true );
         $tool->compare();
+        $tool->sync();
         $destinationClass = $tool->getLocale();
+        $destinationClass = eZContentClass::fetchByIdentifier( $destinationClassId );
+    }
+
+    if ( !$destinationClass instanceof eZContentClass )
+    {
+        throw new Exception( "Classe $destinationClassId non trovata" );
     }
 
     if ( $destinationClass->objectCount() == 0 )
@@ -239,7 +257,7 @@ try
         $list = $destinationClass->objectList();
         $containerObject = $list[0];
     }
-    else
+    elseif ( $destinationClass->objectCount() > 1 )
     {
         throw new Exception( "Trovati più di un oggetto di classe " . ObjectAlbotelematicoHelper::CONTAINER_CLASS_IDENTIFIER . ": non è possibile effettuare l'aggiornamento automatico" );
     }
@@ -256,6 +274,7 @@ try
     ########################################################################################
     ## attivazione workflow
     ########################################################################################
+    OpenPALog::warning( "Occorre attivare A MANO il workflow di post pubblicazione <Schedula l'importatore per gli ogetti di classe Albo Telematico Trentino> per accodare i nuovi contenitori albo" );
 
     ########################################################################################
     ## schedulazione importer
@@ -282,6 +301,10 @@ try
     $settingValue = "ObjectAlbotelematicoHelper";
     $ini = new eZINI( $iniFile . '.append', $path, null, null, null, true, true );
     $ini->setVariable( $block, $settingName, $settingValue );
+
+    //OpenPAINI::set( 'TopMenu', 'IdentificatoriMenu', array( ObjectAlbotelematicoHelper::CONTAINER_CLASS_IDENTIFIER ) );
+    //OpenPAINI::set( 'SideMenu', 'IdentificatoriMenu', array( ObjectAlbotelematicoHelper::CONTAINER_CLASS_IDENTIFIER ) );
+
     if ( $ini->save() )
     {
         eZCache::clearByTag( 'ini' );
