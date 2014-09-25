@@ -14,12 +14,30 @@ class ObjectHandlerServiceContentAlboTelematico extends ObjectHandlerServiceBase
     protected function getStates()
     {
         $data = array();
+        $access = eZUser::currentUser()->hasAccessTo( 'content', 'read');
+        $hasAccess = $access['accessWord'] == 'yes' ? true : array();
+        if ( isset( $access['policies'] ) && is_array( $hasAccess ) )
+        {
+            foreach( $access['policies'] as $policies )
+            {
+                foreach( $policies as $name => $policy )
+                {
+                    if ( $name == 'StateGroup_albotelematico' )
+                    {
+                        $hasAccess = array_merge( $hasAccess, $policy );
+                    }
+                }
+            }
+        }
         foreach( ObjectAlbotelematicoHelper::objectStatesArray() as $identifier => $name )
         {
             try
             {
                 $object = ObjectAlbotelematicoHelper::getState( $identifier );
-                $data[$identifier] = array( 'state_object' => $object, 'name' => $object->translationByLocale( 'ita-IT' )->attribute( 'name' ) ); //@todo
+                if ( $hasAccess === true || ( is_array( $hasAccess ) && in_array( $object->attribute( 'id' ), $hasAccess ) ) )
+                {
+                    $data[$identifier] = array( 'state_object' => $object, 'name' => $name ); //@todo
+                }
             }
             catch( Exception $e )
             {
