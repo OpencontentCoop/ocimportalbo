@@ -197,6 +197,7 @@ try
         }
         $oldHandler = new OpenPaAlbotelematicoHelper();
         $defaultLocations = $oldHandler->getDefaultLocations();
+        $classes = array();
 
         $db->begin();
         foreach( $defaultLocations as $nomeAlbo => $values )
@@ -205,12 +206,12 @@ try
             $identifier = $trans->transformByGroup( $nomeAlbo, 'identifier' );
             /** @var eZContentObjectAttribute $attribute */
             $attribute = $containerObjectDataMap[$identifier];
-            if ( isset( $attribute )
-                 && $attribute instanceof eZContentObjectAttribute )
+            if ( $attribute instanceof eZContentObjectAttribute )
             {
                 $objectIds = $nodeIds = array();
                 foreach( $values as $ezId => $parameters )
                 {
+                    $classes[] = $ezId;
                     $nodeIds = $parameters['node_ids'];
                 }
                 if ( !empty( $nodeIds ) )
@@ -231,6 +232,8 @@ try
                 }
             }
         }
+
+        $classes = array_unique( $classes );
         if ( isset( $comune ) )
         {
             $identifier = ObjectAlbotelematicoHelper::$identifierMap['current_feed'];

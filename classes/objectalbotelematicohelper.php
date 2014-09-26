@@ -86,6 +86,16 @@ class ObjectAlbotelematicoHelper extends AlbotelematicoHelperBase implements Alb
         //eZFile::create( 'data.xml', eZSys::cacheDirectory(), $this->data->saveXML() );
     }
 
+    public function isImported()
+    {
+        if( $this->getCurrentObject() instanceof eZContentObject )
+        {
+            self::checkSection( $this->getCurrentObject()->attribute( 'id' ) );
+            return true;
+        }
+        return false;
+    }
+
     public function availableArguments()
     {
         return array(
@@ -251,7 +261,7 @@ class ObjectAlbotelematicoHelper extends AlbotelematicoHelperBase implements Alb
                 // Progress bar implementation
                 $output = new ezcConsoleOutput();
                 $output->outputLine( '' );
-                $output->outputLine( 'Correzione stato' );
+                $output->outputLine( 'Correzione stato in base a ' . $feed );
                 $progressBarOptions = array(
                     'emptyChar'         => ' ',
                     'barChar'           => '='
@@ -308,20 +318,23 @@ class ObjectAlbotelematicoHelper extends AlbotelematicoHelperBase implements Alb
         $selectedSectionID = parent::getSection()->attribute( 'id' );
         if ( $object instanceOf eZContentObject && $object->attribute( 'section_id' ) != $selectedSectionID )
         {
-            if ( eZOperationHandler::operationIsAvailable( 'content_updatesection' ) )
+            if ( eZContentObjectTreeNode::fetch( $object->attribute( 'main_node_id' ) ) instanceof eZContentObjectTreeNode )
             {
-                $operationResult = eZOperationHandler::execute( 'content',
-                    'updatesection',
-                    array(
-                        'node_id'             => $object->attribute( 'main_node_id' ),
-                        'selected_section_id' => $selectedSectionID ),
-                    null,
-                    true );
+                if ( eZOperationHandler::operationIsAvailable( 'content_updatesection' ) )
+                {
+                    $operationResult = eZOperationHandler::execute( 'content',
+                        'updatesection',
+                        array(
+                            'node_id'             => $object->attribute( 'main_node_id' ),
+                            'selected_section_id' => $selectedSectionID ),
+                        null,
+                        true );
 
-            }
-            else
-            {
-                eZContentOperationCollection::updateSection( $object->attribute( 'main_node_id' ), $selectedSectionID );
+                }
+                else
+                {
+                    eZContentOperationCollection::updateSection( $object->attribute( 'main_node_id' ), $selectedSectionID );
+                }
             }
         }
     }

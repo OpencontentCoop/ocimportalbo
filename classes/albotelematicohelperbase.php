@@ -4,6 +4,11 @@ class AlbotelematicoHelperBase
 {
     const SECTION_IDENTIFIER = 'albotelematicotrentino';
 
+    const STATE_VISIBILE = 'visibile';
+    const STATE_ARCHIVIO_RICERCABILE = 'archivioricercabile';
+    const STATE_ARCHIVIO_NON_RICERCABILE = 'archiviononricercabile';
+    const STATE_NON_VISIBILE = 'nonvisibile';
+
     public $ini;
     public $tempVarDir;
     public $tempLogDir;

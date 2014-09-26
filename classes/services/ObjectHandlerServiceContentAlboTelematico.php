@@ -8,7 +8,23 @@ class ObjectHandlerServiceContentAlboTelematico extends ObjectHandlerServiceBase
         $this->data['container_template'] = "design:openpa/services/content_albotelematico/container.tpl";
         $this->data['is_atto'] = $this->isAtto();
         $this->data['states'] = $this->getStates();
-        $this->data['default_state'] = isset( $this->data['states']['visibile'] ) ? $this->data['states']['visibile'] : null;
+
+        $this->data['default_state_ids'] = array( AlbotelematicoHelperBase::getStateID( AlbotelematicoHelperBase::STATE_VISIBILE ) );
+        $this->data['archive_state_ids'] = array(
+            AlbotelematicoHelperBase::getStateID( AlbotelematicoHelperBase::STATE_ARCHIVIO_RICERCABILE ),
+            AlbotelematicoHelperBase::getStateID( AlbotelematicoHelperBase::STATE_ARCHIVIO_NON_RICERCABILE )
+        );
+    }
+
+    function filter( $filterIdentifier, $action )
+    {
+        if ( $filterIdentifier == 'change_section'
+             && $action == 'run'
+             && $this->isAtto() )
+        {
+            return OpenPAObjectHandler::FILTER_HALT;
+        }
+        return parent::filter( $filterIdentifier, $action );
     }
 
     protected function getStates()
@@ -29,11 +45,11 @@ class ObjectHandlerServiceContentAlboTelematico extends ObjectHandlerServiceBase
                 }
             }
         }
-        foreach( ObjectAlbotelematicoHelper::objectStatesArray() as $identifier => $name )
+        foreach( AlbotelematicoHelperBase::objectStatesArray() as $identifier => $name )
         {
             try
             {
-                $object = ObjectAlbotelematicoHelper::getState( $identifier );
+                $object = AlbotelematicoHelperBase::getState( $identifier );
                 if ( $hasAccess === true || ( is_array( $hasAccess ) && in_array( $object->attribute( 'id' ), $hasAccess ) ) )
                 {
                     $data[$identifier] = array( 'state_object' => $object, 'name' => $name ); //@todo
@@ -78,7 +94,7 @@ class ObjectHandlerServiceContentAlboTelematico extends ObjectHandlerServiceBase
         $current = $this->container->getContentObject();
         if ( $current instanceOf eZContentObject )
         {
-            if ( substr( $current->attribute( 'remote_id' ), 0, 2 ) == 'at_' )
+            if ( substr( $current->attribute( 'remote_id' ), 0, 3 ) == 'at_' )
             {
                 $data = true;
             }

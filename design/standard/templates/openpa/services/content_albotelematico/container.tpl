@@ -1,15 +1,18 @@
-{def $current_state =  $openpa.content_albotelematico.default_state}
+{def $current_state =  "in_pubblicazione"
+     $attribute_filter = array( array( 'state', "in", $openpa.content_albotelematico.default_state_ids ) )}
+
 {if is_set( $view_parameters.stato )}
-  {def $current_state_identifier = $view_parameters.stato}
-  {if is_set( $openpa.content_albotelematico.states[$current_state_identifier] )}
-    {set $current_state = $openpa.content_albotelematico.states[$current_state_identifier]}
-  {/if}
+   {set $current_state = $view_parameters.stato}
 {/if}
 
+{if $current_state|eq( 'archivio' )}
+  {set $attribute_filter = array( array( 'state', "=", $openpa.content_albotelematico.archive_state_ids ) )}
+{/if}
+
+
 <div class="state-navigation block">
-{foreach  $openpa.content_albotelematico.states as $identifier => $state}
-  <a class="button{if $current_state.state_object.id|eq($state.state_object.id)} defaultbutton{/if}" href="{concat( $node.url_alias, '/(stato)/', $identifier)|ezurl(no)}">{$state.name}</a>
-{/foreach}
+  <a class="button{if $current_state|eq('in_pubblicazione')} defaultbutton{/if}" href="{$node.url_alias|ezurl(no)}">In pubblicazione</a>
+  <a class="button{if $current_state|eq('archivio')} defaultbutton{/if}" href="{concat( $node.url_alias, '/(stato)/archivio')|ezurl(no)}">Archivio</a>
 </div>
 
 
@@ -26,13 +29,13 @@
 
 
 {def $page_limit = openpaini( 'GestioneFigli', 'limite_paginazione', 25 )
-     $children_count = fetch( 'content', 'list_count', hash( 'parent_node_id', $node.node_id, 'attribute_filter', array( array( 'state', "=", $current_state.state_object.id ) ) ))}
+     $children_count = fetch( 'content', 'list_count', hash( 'parent_node_id', $node.node_id, 'attribute_filter',  ))}
 
 {if $children_count}
 
   {def $children = fetch( 'content', 'list', hash( 'parent_node_id', $node.node_id,
                                                    'limit', $page_limit,
-                                                   'attribute_filter', array( array( 'state', "=", $current_state.state_object.id ) ),
+                                                   'attribute_filter', $attribute_filter,
                                                    'sort_by', $node.sort_array,
                                                    'offset', $view_parameters.offset ) )}
 
@@ -51,7 +54,7 @@
 
   {include name=navigator
            uri='design:navigator/google.tpl'
-           page_uri=concat( $node.url_alias, '/(stato)/', $current_state_identifier)
+           page_uri=$node.url_alias
            item_count=$children_count
            view_parameters=$view_parameters
            item_limit=$page_limit}
