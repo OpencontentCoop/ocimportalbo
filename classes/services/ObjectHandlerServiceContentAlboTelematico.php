@@ -20,7 +20,8 @@ class ObjectHandlerServiceContentAlboTelematico extends ObjectHandlerServiceBase
     {
         if ( $filterIdentifier == 'change_section'
              && $action == 'run'
-             && $this->isAtto() )
+             && $this->isAtto()
+             && OpenPAINI::variable( 'HelperSettings', 'HelperClass' ) == 'ObjectAlbotelematicoHelper' )
         {
             return OpenPAObjectHandler::FILTER_HALT;
         }

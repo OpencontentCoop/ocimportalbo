@@ -220,7 +220,10 @@ class AlboImportHandler extends SQLIImportAbstractHandler implements ISQLIImport
 
     public function cleanup()
     {
-        $this->helper->cleanup();
+        if ( $this->helper instanceof AlbotelematicoHelperInterface )
+        {
+            $this->helper->cleanup();
+        }
         $this->sendMail();
         return;
     }
