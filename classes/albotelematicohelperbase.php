@@ -2,6 +2,13 @@
 
 class AlbotelematicoHelperBase
 {
+    const SECTION_IDENTIFIER = 'albotelematicotrentino';
+
+    const STATE_VISIBILE = 'visibile';
+    const STATE_ARCHIVIO_RICERCABILE = 'archivioricercabile';
+    const STATE_ARCHIVIO_NON_RICERCABILE = 'archiviononricercabile';
+    const STATE_NON_VISIBILE = 'nonvisibile';
+
     public $ini;
     public $tempVarDir;
     public $tempLogDir;
@@ -83,11 +90,16 @@ class AlbotelematicoHelperBase
         unset( $this->content );
         $this->currentObject = null;
     }
-    
+
+    public static function buildRemoteId( $string )
+    {
+        return 'at_' . $string;
+    }
+
     public function getRemoteID()
     {
         $id = (string) $this->row->id_atto;
-        return 'at_' . $id;
+        return self::buildRemoteId( $id );
         //return md5( $id );
     }
     
@@ -187,11 +199,9 @@ class AlbotelematicoHelperBase
                 {
                     $simplexml_temp->addAttribute($attr_key, $attr_value);
                 }
+                $firstLoop = false;
+                self::append_simplexml( $simplexml_temp, $simplexml_child );
             }
-
-            $firstLoop = false;
-
-            self::append_simplexml( $simplexml_temp, $simplexml_child );
         }
 
         unset( $firstLoop );
@@ -424,10 +434,16 @@ class AlbotelematicoHelperBase
         return $this->mapAttributes;
     }
 
+    function getSectionID()
+    {
+        return 0; //vedi eZContentClass::instantiate
+    }
+
     function fillContent()
     {
         $contentOptions = new SQLIContentOptions( array(
             'creator_id'            => $this->getCreatorID(),
+            'section_id'            => $this->getSectionID(),
             'class_identifier'      => $this->getClassIdentifier(),
             'remote_id'             => $this->getRemoteID()
         ) );
@@ -679,4 +695,166 @@ class AlbotelematicoHelperBase
     {
         return false;
     }
+
+    /**
+     * @param $identifier
+     *
+     * @return int
+     * @throws Exception
+     */
+    public static function getStateID( $identifier )
+    {
+        $status = self::getState( $identifier );
+        if ( $status instanceof eZContentObjectState )
+        {
+            return $status->attribute( 'id' );
+        }
+    }
+
+    /**
+     * @param string $identifier
+     * @return eZContentObjectState
+     * @throws Exception
+     */
+    public static function getState( $identifier )
+    {
+        if ( $identifier == 'archviononricercabile' ) // fix albotelematico typo...
+        {
+            $identifier = 'archiviononricercabile';
+        }
+        $group = eZContentObjectStateGroup::fetchByIdentifier( 'albotelematico' );
+        if ( $group instanceof eZContentObjectStateGroup )
+        {
+            $status = eZContentObjectState::fetchByIdentifier( $identifier, $group->attribute( 'id' ) );
+            if ( $status instanceof eZContentObjectState )
+            {
+                return $status;
+            }
+            else
+            {
+                throw new Exception( "Stato {$identifier} non trovato"  );
+            }
+
+        }
+        else
+        {
+            throw new Exception( "Gruppo di stati \"albotelematico\" non trovato"  );
+        }
+    }
+
+    public static function setState( $objectID, $identifier )
+    {
+        $id = self::getStateID( $identifier );
+        if ( eZOperationHandler::operationIsAvailable( 'content_updateobjectstate' ) )
+        {
+            eZOperationHandler::execute( 'content', 'updateobjectstate',
+                array( 'object_id'     => $objectID,
+                       'state_id_list' => array( $id ) ) );
+        }
+        else
+        {
+            eZContentOperationCollection::updateObjectState( $objectID, array( $id ) );
+        }
+    }
+
+    public static function objectStatesArray()
+    {
+        return array(
+            "visibile" => "Visibile",
+            "archivioricercabile" => "Archivio ricercabile",
+            "archiviononricercabile" => "Archivio non ricercabile",
+            "nonvisibile" => "Non visibile"
+        );
+    }
+
+    public static function createStates()
+    {
+        $groups = array(
+            array(
+                'identifier' => 'albotelematico',
+                'name' => 'Albo telematico',
+                'states' => self::objectStatesArray()
+            )
+        );
+
+        foreach( $groups as $group )
+        {
+            $stateGroup = eZContentObjectStateGroup::fetchByIdentifier( $group['identifier'] );
+            if ( !$stateGroup instanceof eZContentObjectStateGroup )
+            {
+                $stateGroup = new eZContentObjectStateGroup();
+                $stateGroup->setAttribute( 'identifier', $group['identifier'] );
+                $stateGroup->setAttribute( 'default_language_id', 2 );
+
+                $translations = $stateGroup->allTranslations();
+                foreach( $translations as $translation )
+                {
+                    $translation->setAttribute( 'name', $group['name'] );
+                    $translation->setAttribute( 'description', $group['name'] );
+                }
+
+                $messages = array();
+                $isValid = $stateGroup->isValid( $messages );
+                if ( !$isValid )
+                {
+                    throw new Exception( implode( ',', $messages ) );
+                }
+                $stateGroup->store();
+            }
+
+            foreach( $group['states'] as $StateIdentifier => $StateName )
+            {
+                $stateObject = $stateGroup->stateByIdentifier( $StateIdentifier );
+                if ( !$stateObject instanceof eZContentObjectState )
+                {
+                    $stateObject = $stateGroup->newState( $StateIdentifier );
+                }
+                $stateObject->setAttribute( 'default_language_id', 2 );
+                $stateTranslations = $stateObject->allTranslations();
+                foreach( $stateTranslations as $translation )
+                {
+                    $translation->setAttribute( 'name', $StateName );
+                    $translation->setAttribute( 'description', $StateName );
+                }
+                $messages = array();
+                $isValid = $stateObject->isValid( $messages );
+                if ( !$isValid )
+                {
+                    throw new Exception( implode( ',', $messages ) );
+                }
+                $stateObject->store();
+            }
+        }
+    }
+
+    /**
+     * @return eZSection
+     * @throws Exception
+     */
+    public static function getSection()
+    {
+        $section = eZPersistentObject::fetchObject( eZSection::definition(), null, array( "identifier" => self::SECTION_IDENTIFIER ), true );
+        if ( !$section instanceOf eZSection )
+        {
+            throw new Exception( "Section {self::SECTION_IDENTIFIER} non trovata" );
+        }
+        return $section;
+    }
+
+    public static function createSection()
+    {
+        $section = eZPersistentObject::fetchObject( eZSection::definition(), null, array( "identifier" => self::SECTION_IDENTIFIER ), true );
+        if ( !$section instanceOf eZSection )
+        {
+            $section = new eZSection( array() );
+            $section->setAttribute( 'name', 'Albo Telematico Trentino' );
+            $section->setAttribute( 'identifier', self::SECTION_IDENTIFIER );
+            $section->setAttribute( 'navigation_part_identifier', 'ezcontentnavigationpart' );
+            $section->store();
+        }
+        return $section;
+    }
+
+
+
 }

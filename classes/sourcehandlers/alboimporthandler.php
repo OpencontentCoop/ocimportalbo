@@ -32,6 +32,9 @@ class AlboImportHandler extends SQLIImportAbstractHandler implements ISQLIImport
 
     private $rowIndex = 0;
     private $rowCount;
+    /**
+     * @var AlbotelematicoHelperInterface
+     */
     private $helper;
 
     private $registerMail = array();
@@ -104,6 +107,9 @@ class AlboImportHandler extends SQLIImportAbstractHandler implements ISQLIImport
             throw new Exception( "helper non implementa l'interfaccia corretta" );
         }
 
+        $db = eZDB::instance();
+        $db->setErrorHandling( eZDB::ERROR_HANDLING_EXCEPTIONS );
+
         try
         {
             if ( !$this->helper->canProcessRow( $row  ) )
@@ -142,6 +148,13 @@ class AlboImportHandler extends SQLIImportAbstractHandler implements ISQLIImport
             $this->helper->registerImport();
             unset( $content );
         }
+        catch( eZDBException $e )
+        {
+            $this->helper->rollback();
+            $this->registerMail[] = array( 'row' => $row, 'exception' => $e );
+            $this->cli->error( $e->getMessage() );
+            $db->rollback();
+        }
         catch( AlboFatalException $e )
         {            
             $this->helper->rollback();
@@ -154,7 +167,7 @@ class AlboImportHandler extends SQLIImportAbstractHandler implements ISQLIImport
             $this->helper->registerError( $e->getMessage() );
         }
 
-        return;
+        return true;
     }
     
     public function sendMail()
