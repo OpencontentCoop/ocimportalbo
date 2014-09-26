@@ -6,7 +6,7 @@
 {/if}
 
 {if $current_state|eq( 'archivio' )}
-  {set $attribute_filter = array( array( 'state', "=", $openpa.content_albotelematico.archive_state_ids ) )}
+  {set $attribute_filter = array( array( 'state', "in", $openpa.content_albotelematico.archive_state_ids ) )}
 {/if}
 
 
@@ -27,9 +27,8 @@
   {/if}
 </div>
 
-
 {def $page_limit = openpaini( 'GestioneFigli', 'limite_paginazione', 25 )
-     $children_count = fetch( 'content', 'list_count', hash( 'parent_node_id', $node.node_id, 'attribute_filter',  ))}
+     $children_count = fetch( 'content', 'list_count', hash( 'parent_node_id', $node.node_id, 'attribute_filter', $attribute_filter ))}
 
 {if $children_count}
 
@@ -40,13 +39,13 @@
                                                    'offset', $view_parameters.offset ) )}
 
   {if is_set( $style )|not}{def $style='col-odd'}{/if}
-
+  
   <div class="content-view-children block">
     {foreach $children as $child }
       {if $style|eq('col-even')}{set $style='col-odd'}{else}{set $style='col-even'}{/if}
       <div class="{$style} col col-notitle float-break">
-        <div class="col-content"><div class="col-content-design">
-          {node_view_gui view='line' show_image='no' content_node=$child}
+        <div class="col-content"><div class="col-content-design">          
+          {node_view_gui view='line' content_node=$child}
         </div></div>
       </div>
     {/foreach}

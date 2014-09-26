@@ -9,11 +9,19 @@ class ObjectHandlerServiceContentAlboTelematico extends ObjectHandlerServiceBase
         $this->data['is_atto'] = $this->isAtto();
         $this->data['states'] = $this->getStates();
 
-        $this->data['default_state_ids'] = array( AlbotelematicoHelperBase::getStateID( AlbotelematicoHelperBase::STATE_VISIBILE ) );
-        $this->data['archive_state_ids'] = array(
-            AlbotelematicoHelperBase::getStateID( AlbotelematicoHelperBase::STATE_ARCHIVIO_RICERCABILE ),
-            AlbotelematicoHelperBase::getStateID( AlbotelematicoHelperBase::STATE_ARCHIVIO_NON_RICERCABILE )
-        );
+        try
+        {
+            $this->data['default_state_ids'] = array( AlbotelematicoHelperBase::getStateID( AlbotelematicoHelperBase::STATE_VISIBILE ) );
+            $this->data['archive_state_ids'] = array(
+                AlbotelematicoHelperBase::getStateID( AlbotelematicoHelperBase::STATE_ARCHIVIO_RICERCABILE ),
+                AlbotelematicoHelperBase::getStateID( AlbotelematicoHelperBase::STATE_ARCHIVIO_NON_RICERCABILE )
+            );
+        }
+        catch( Exception $e )
+        {
+            $this->data['default_state_ids'] = array();
+            $this->data['archive_state_ids'] = array();
+        }
     }
 
     function filter( $filterIdentifier, $action )
@@ -93,7 +101,7 @@ class ObjectHandlerServiceContentAlboTelematico extends ObjectHandlerServiceBase
     {
         $data = false;
         $current = $this->container->getContentObject();
-        if ( $current instanceOf eZContentObject )
+        if ( $current instanceOf eZContentObject && OpenPAINI::variable( 'HelperSettings', 'HelperClass' ) == 'ObjectAlbotelematicoHelper' )
         {
             if ( substr( $current->attribute( 'remote_id' ), 0, 3 ) == 'at_' )
             {
