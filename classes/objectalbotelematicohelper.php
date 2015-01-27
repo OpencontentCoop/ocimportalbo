@@ -347,7 +347,7 @@ class ObjectAlbotelematicoHelper extends AlbotelematicoHelperBase implements Alb
         {
             $importOptions = new SQLIImportHandlerOptions( array( 'object' => $objectId ) );
             $currentImportHandler = 'alboimporthandler';
-            $importFrequency = 'daily';
+            $importFrequency = SQLIScheduledImport::FREQUENCY_HOURLY;
 
             $row = array(
                 'handler'   => $currentImportHandler,

@@ -8,9 +8,13 @@ $script = eZScript::instance( array( 'description' => ( "OpenPA Fix data convoca
 
 $script->startup();
 $options = $script->getOptions(
-    '[original_node:]',
+    '[original_node:][ignore-scheduled][comune:]',
     '',
-    array( 'original_node'  => 'Nodo "Albo Pretorio" da migrare nella nuova classe')
+    array(
+        'original_node'  => 'Nodo "Albo Pretorio" da migrare nella nuova classe',
+        'ignore-scheduled' => 'Ignora l\'assenza dello schedulatore',
+        'comune' => 'Identificatore comune in albo telematico trentino'
+    )
 );
 $script->initialize();
 $script->setUseDebugAccumulators( true );
@@ -31,7 +35,20 @@ try
     );
     if ( count( $scheduledImports ) == 0 )
     {
-        throw new Exception( "Non è attivato alcun importatore dell'albo telematico trentino" );
+        $message = "Non è attivato alcun importatore dell'albo telematico trentino";
+        if( !$options['ignore-scheduled'] )
+        {
+            throw new Exception( $message );
+        }
+        else
+        {
+            OpenPALOG::warning( $message );
+            if ( !$options['comune'] )
+            {
+                throw new Exception( "Specificare il comune" );
+            }
+            $comune = $options['comune'];
+        }
     }
     else
     {
@@ -54,14 +71,7 @@ try
     ## crea stati se non esistono
     ########################################################################################
     OpenPALog::output( "Controllo presenza stati" );
-    try
-    {
-        AlbotelematicoHelperBase::getStateID( 'visibile' );
-    }
-    catch( Exception $e )
-    {
-        AlbotelematicoHelperBase::createStates();
-    }
+    AlbotelematicoHelperBase::createStates();
 
     ########################################################################################
     ##  crea policy sugli stati
@@ -94,7 +104,8 @@ try
                     'StateGroup_albotelematico' => array(
                         AlbotelematicoHelperBase::getStateID( 'visibile' ),
                         AlbotelematicoHelperBase::getStateID( 'archivioricercabile' ),
-                        AlbotelematicoHelperBase::getStateID( 'archiviononricercabile' )
+                        AlbotelematicoHelperBase::getStateID( 'archiviononricercabile' ),
+                        AlbotelematicoHelperBase::getStateID( 'annullato' )
                     ),
                     'Section' => array( AlbotelematicoHelperBase::getSection()->attribute( 'id' ) )
                 )
@@ -189,6 +200,12 @@ try
         ########################################################################################
         /** @var eZContentObject $containerObject */
         $containerObject = eZContentObject::fetch( $containerId );
+        
+        eZContentObjectTreeNode::assignSectionToSubTree(
+            $containerObject->attribute( 'main_node_id' ),
+            AlbotelematicoHelperBase::getSection()->attribute( 'id' )
+        );
+        
         $containerObjectDataMap = $containerObject->attribute( 'data_map' );
 
         if ( strpos( OpenPABase::getFrontendSiteaccessName(), '_frontend' ) === false )
@@ -253,6 +270,7 @@ try
                 $attribute->store();
             }
         }
+        
         $db->commit();
     }
     elseif ( $destinationClass->objectCount() == 1 )
@@ -282,7 +300,7 @@ try
     ########################################################################################
     ## schedulazione importer
     ########################################################################################
-    if ( $containerObject instanceof eZContentObject )
+    if ( $containerObject instanceof eZContentObject && isset( $comune ) )
     {
         OpenPALog::output( "Schedulazione importer" );
         $base = new AlbotelematicoHelperBase();
@@ -317,6 +335,10 @@ try
         throw new Exception( "Scrittura fallita su $path/$iniFile" );
     }
 
+    eZRole::expireCache();    
+    eZContentCacheManager::clearAllContentCache();
+    eZUser::cleanupCache();
+    
     $script->shutdown();
 }
 catch( Exception $e )

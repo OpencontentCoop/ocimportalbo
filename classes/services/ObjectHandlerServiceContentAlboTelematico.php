@@ -11,7 +11,10 @@ class ObjectHandlerServiceContentAlboTelematico extends ObjectHandlerServiceBase
 
         try
         {
-            $this->data['default_state_ids'] = array( AlbotelematicoHelperBase::getStateID( AlbotelematicoHelperBase::STATE_VISIBILE ) );
+            $this->data['default_state_ids'] = array(
+                AlbotelematicoHelperBase::getStateID( AlbotelematicoHelperBase::STATE_VISIBILE ),
+                AlbotelematicoHelperBase::getStateID( AlbotelematicoHelperBase::STATE_ANNULLATO )
+            );
             $this->data['archive_state_ids'] = array(
                 AlbotelematicoHelperBase::getStateID( AlbotelematicoHelperBase::STATE_ARCHIVIO_RICERCABILE ),
                 AlbotelematicoHelperBase::getStateID( AlbotelematicoHelperBase::STATE_ARCHIVIO_NON_RICERCABILE )
@@ -25,11 +28,11 @@ class ObjectHandlerServiceContentAlboTelematico extends ObjectHandlerServiceBase
     }
 
     function filter( $filterIdentifier, $action )
-    {
+    {                        
         if ( $filterIdentifier == 'change_section'
              && $action == 'run'
              && $this->isAtto()
-             && OpenPAINI::variable( 'HelperSettings', 'HelperClass' ) == 'ObjectAlbotelematicoHelper' )
+             && eZINI::instance( 'alboimporthandler.ini' )->variable( 'HelperSettings', 'HelperClass' ) == 'ObjectAlbotelematicoHelper' )
         {
             return OpenPAObjectHandler::FILTER_HALT;
         }
@@ -101,7 +104,7 @@ class ObjectHandlerServiceContentAlboTelematico extends ObjectHandlerServiceBase
     {
         $data = false;
         $current = $this->container->getContentObject();
-        if ( $current instanceOf eZContentObject && OpenPAINI::variable( 'HelperSettings', 'HelperClass' ) == 'ObjectAlbotelematicoHelper' )
+        if ( $current instanceOf eZContentObject && eZINI::instance( 'alboimporthandler.ini' )->variable( 'HelperSettings', 'HelperClass' ) == 'ObjectAlbotelematicoHelper' )
         {
             if ( substr( $current->attribute( 'remote_id' ), 0, 3 ) == 'at_' )
             {

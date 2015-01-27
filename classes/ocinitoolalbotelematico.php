@@ -35,35 +35,39 @@ class OCIniToolAlbotelematico implements OCIniToolInterface
                 throw new Exception( "$helperClass non implementa l'interfaccia corretta" );
             }
             
-            $http = eZHTTPTool::instance();
-            
-            if( $http->hasPostVariable( 'SaveLocations' ) )
+            if ( !$this->helper instanceof ObjectAlbotelematicoHelper )
             {
-                $locations = $http->postVariable( 'AlboLocations' );
-                if ( !$this->helper->saveINILocations( $locations ) )
-                {
-                    $this->error = "Non riesco a salvare le configurazioni: il file potrebbe non essere scrivibile";
-                }
-                elseif ( $this->module instanceof eZModule )
-                {
-                    return $this->module->redirectTo( 'inigui/tools/albolocation' );
-                }
-            }
             
-            $this->locations = $this->helper->getDefaultLocations();                        
-            if( $http->hasPostVariable( 'test' ) )
-            {
-                $rawText = $http->postVariable( 'test' );
-                $this->xml = trim( $rawText );
-                $row = new SimpleXMLElement( $this->xml );
-                $options = eZINI::instance( 'sqliimport.ini' )->group( 'alboimporthandler-HandlerSettings' );
-                $this->helper->loadArguments( array( 'comune' => 'test', 'ente' => 'test', 'comunita' => 'test' ), $options );
-                $this->helper->setCurrentRow( $row );
+                $http = eZHTTPTool::instance();
+                
+                if( $http->hasPostVariable( 'SaveLocations' ) )
+                {
+                    $locations = $http->postVariable( 'AlboLocations' );
+                    if ( !$this->helper->saveINILocations( $locations ) )
+                    {
+                        $this->error = "Non riesco a salvare le configurazioni: il file potrebbe non essere scrivibile";
+                    }
+                    elseif ( $this->module instanceof eZModule )
+                    {
+                        return $this->module->redirectTo( 'inigui/tools/albolocation' );
+                    }
+                }
 
-                $test['classIdentifier'] = $this->helper->getClassIdentifier();
-                $test['locations'] = $this->helper->getLocations();                
-                $test['values'] = $this->helper->attributesMap();
-                $this->test = $this->html_show_array( $test );
+                $this->locations = $this->helper->getDefaultLocations();
+                if( $http->hasPostVariable( 'test' ) )
+                {
+                    $rawText = $http->postVariable( 'test' );
+                    $this->xml = trim( $rawText );
+                    $row = new SimpleXMLElement( $this->xml );
+                    $options = eZINI::instance( 'sqliimport.ini' )->group( 'alboimporthandler-HandlerSettings' );
+                    $this->helper->loadArguments( array( 'comune' => 'test', 'ente' => 'test', 'comunita' => 'test' ), $options );
+                    $this->helper->setCurrentRow( $row );
+    
+                    $test['classIdentifier'] = $this->helper->getClassIdentifier();
+                    $test['locations'] = $this->helper->getLocations();                
+                    $test['values'] = $this->helper->attributesMap();
+                    $this->test = $this->html_show_array( $test );
+                }
             }
         }
         catch( Exception $e )
@@ -80,16 +84,33 @@ class OCIniToolAlbotelematico implements OCIniToolInterface
     public function template()
     {
         $tpl = eZTemplate::factory();
-        $tpl->setVariable( 'location_hash', $this->locations );
-        if ( $this->test !== null )
-            $tpl->setVariable( 'test', $this->test );
-        if ( $this->error !== null )
-            $tpl->setVariable( 'error', $this->error );
-        $tpl->setVariable( 'xml', $this->xml );
-        $Result = array();
-        $tpl->setVariable( 'page_title', 'Collocazioni Albotelematico' );
-        $Result['path'] = array( array( 'text' => 'Collocazioni Albotelematico', 'url' => false ) );
-        $Result['content'] = $tpl->fetch( 'design:iniguitools/albotelematico.tpl' );
+        
+        if ( $this->helper instanceof ObjectAlbotelematicoHelper )
+        {
+            $class = eZContentClass::fetchByIdentifier( ObjectAlbotelematicoHelper::CONTAINER_CLASS_IDENTIFIER );
+            if ( $class instanceof eZContentClass )
+            {
+                $objects = $class->objectList();
+                $tpl->setVariable( 'objects', $objects );
+            }
+            $Result = array();
+            $tpl->setVariable( 'page_title', 'Collocazioni Albotelematico' );
+            $Result['path'] = array( array( 'text' => 'Collocazioni Albotelematico', 'url' => false ) );
+            $Result['content'] = $tpl->fetch( 'design:iniguitools/objectalbotelematico.tpl' );
+        }
+        else
+        {            
+            $tpl->setVariable( 'location_hash', $this->locations );
+            if ( $this->test !== null )
+                $tpl->setVariable( 'test', $this->test );
+            if ( $this->error !== null )
+                $tpl->setVariable( 'error', $this->error );
+            $tpl->setVariable( 'xml', $this->xml );
+            $Result = array();
+            $tpl->setVariable( 'page_title', 'Collocazioni Albotelematico' );
+            $Result['path'] = array( array( 'text' => 'Collocazioni Albotelematico', 'url' => false ) );
+            $Result['content'] = $tpl->fetch( 'design:iniguitools/albotelematico.tpl' );
+        }
         return $Result;
     }
     

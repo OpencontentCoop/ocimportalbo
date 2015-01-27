@@ -8,6 +8,7 @@ class AlbotelematicoHelperBase
     const STATE_ARCHIVIO_RICERCABILE = 'archivioricercabile';
     const STATE_ARCHIVIO_NON_RICERCABILE = 'archiviononricercabile';
     const STATE_NON_VISIBILE = 'nonvisibile';
+    const STATE_ANNULLATO = 'annullato';
 
     public $ini;
     public $tempVarDir;
@@ -397,12 +398,12 @@ class AlbotelematicoHelperBase
         $baseUrl = str_replace( "ANNO", $this->values['anno_file'], $baseUrl );
 
         if ( isset( $this->values['url'] ) )
-        {
-            $this->values['url'] = $baseUrl . $this->values['url'];
+        {            
+            $this->values['url'] = $baseUrl . rawurlencode( $this->values['url'] );
         }
         foreach( $this->values['allegati'] as $i => $item )
         {
-            $this->values['allegati'][$i]['url'] = $baseUrl . $item['path'];
+            $this->values['allegati'][$i]['url'] = $baseUrl . rawurlencode( $item['path'] );
         }
         return $this->values;
     }
@@ -755,6 +756,21 @@ class AlbotelematicoHelperBase
         {
             eZContentOperationCollection::updateObjectState( $objectID, array( $id ) );
         }
+        if ( $identifier == "annullato" )
+        {
+            $object = eZContentObject::fetch( $objectID );
+            if ( $object instanceof eZContentObject )
+            {
+                $class = $object->attribute( 'content_class' );
+                $name = $class->contentObjectName( $object );        
+                $object->setName( "[ANNULLATO] " . $name );        
+                $object->store();
+                
+                eZSearch::addObject( $object );
+                $content = SQLIContent::fromContentObject( $object );
+                $content->addPendingClearCacheIfNeeded();
+            }
+        }
     }
 
     public static function objectStatesArray()
@@ -763,12 +779,15 @@ class AlbotelematicoHelperBase
             "visibile" => "Visibile",
             "archivioricercabile" => "Archivio ricercabile",
             "archiviononricercabile" => "Archivio non ricercabile",
-            "nonvisibile" => "Non visibile"
+            "nonvisibile" => "Non visibile",
+            "annullato" => "Annullato"
         );
     }
 
     public static function createStates()
     {
+        return OpenPABase::initStateGroup( 'albotelematico', self::objectStatesArray() );
+        /*
         $groups = array(
             array(
                 'identifier' => 'albotelematico',
@@ -825,6 +844,7 @@ class AlbotelematicoHelperBase
                 $stateObject->store();
             }
         }
+        */
     }
 
     /**
