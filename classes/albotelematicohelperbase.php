@@ -377,7 +377,7 @@ class AlbotelematicoHelperBase
                     {
                         foreach ( $value->children() as $allegato )
                         {
-                            $this->values['allegati'][] = array( 'path' => 'allegati/' . $allegato->url,
+                            $this->values['allegati'][] = array( 'path' => 'allegati/' . rawurlencode( $allegato->url ),
                                                                  'name' => (string) $allegato->titolo );
                         }
                     }
@@ -403,7 +403,7 @@ class AlbotelematicoHelperBase
         }
         foreach( $this->values['allegati'] as $i => $item )
         {
-            $this->values['allegati'][$i]['url'] = $baseUrl . rawurlencode( $item['path'] );
+            $this->values['allegati'][$i]['url'] = $baseUrl . $item['path'];
         }
         return $this->values;
     }
