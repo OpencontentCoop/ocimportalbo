@@ -7,9 +7,9 @@
 
 {if $current_state|eq( 'archivio' )}
   {set $attribute_filter = array( array( 'state', "in", $openpa.content_albotelematico.archive_state_ids ) )}
-  {def $archvio_attribute_filter = array( array( 'state', "in", $openpa.content_albotelematico.archive_state_ids ) )}
 {/if}
 
+{def $archvio_attribute_filter = array( array( 'state', "in", $openpa.content_albotelematico.archive_state_ids ) )}
 
 <div class="state-navigation block">
   <a class="button{if $current_state|eq('in_pubblicazione')} defaultbutton{/if}" href="{$node.url_alias|ezurl(no)}">In pubblicazione</a>
