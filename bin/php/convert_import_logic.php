@@ -339,6 +339,11 @@ try
     eZRole::expireCache();    
     eZContentCacheManager::clearAllContentCache();
     eZUser::cleanupCache();
+
+    $anonymousUserId = eZINI::instance()->variable( 'UserSettings', 'AnonymousUserID' );
+    $anonymousCache = eZUser::getCacheDir( $anonymousUserId ). '/user-'. $anonymousUserId . '.cache.php';
+    eZClusterFileHandler::instance( $anonymousCache )->purge();
+
     
     $script->shutdown();
 }
