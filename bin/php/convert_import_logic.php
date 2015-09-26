@@ -308,6 +308,7 @@ try
         $user = eZUser::fetchByName( 'albotelematico' );
         eZUser::setCurrentlyLoggedInUser( $user , $user->attribute( 'contentobject_id' ) );
         ObjectAlbotelematicoHelper::appendImporterByObjectId( $containerObject->attribute( 'id' ) );
+        ObjectAlbotelematicoHelper::addImmediateImporterByObjectId( $containerObject->attribute( 'id' ) );
     }
 
     ########################################################################################

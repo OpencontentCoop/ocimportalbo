@@ -347,6 +347,29 @@ class ObjectAlbotelematicoHelper extends AlbotelematicoHelperBase implements Alb
     }
 
 
+    public static function addImmediateImporterByObjectId( $objectId )
+    {
+        $object = eZContentObject::fetch( $objectId );
+        if ( $object instanceof eZContentObject )
+        {
+            $importOptions = new SQLIImportHandlerOptions( array( 'object' => $objectId ) );
+            $currentImportHandler = 'alboimporthandler';
+
+            $row = array(
+                'handler'   => $currentImportHandler,
+                'user_id'   => eZUser::currentUserID(),
+            );
+            $scheduledImport = new SQLIImportItem( $row );
+
+            if ( $importOptions )
+            {
+                $scheduledImport->setAttribute( 'options', $importOptions );
+            }
+
+            $scheduledImport->store();
+        }
+    }
+
     public static function appendImporterByObjectId( $objectId )
     {
         $object = eZContentObject::fetch( $objectId );
