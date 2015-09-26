@@ -78,7 +78,7 @@ class ObjectHandlerServiceContentAlboTelematico extends ObjectHandlerServiceBase
     protected function isContainer()
     {
         $data = false;
-        if ( $this->container->currentClassIdentifier == 'pagina_sito' )
+        if ( $this->container->currentClassIdentifier == 'pagina_sito' || $this->container->currentClassIdentifier == 'folder' )
         {
             $current = $this->container->getContentObject();
             if ( $current instanceOf eZContentObject )
