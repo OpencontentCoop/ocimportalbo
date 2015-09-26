@@ -345,6 +345,14 @@ try
     OpenPALog::output( "rm $anonymousCache" );
     eZClusterFileHandler::instance( $anonymousCache )->purge();
 
+    if ( class_exists( 'ProcessManager' ) )
+    {
+        $scriptParameters = "-s" . OpenPABase::getBackendSiteaccessName() . " sqliimport_run";
+        OpenPALog::output( "Run cron $scriptParameters" );
+        $manager = ProcessManager::instance();
+        $manager->addScript( "runcronjobs.php", $scriptParameters );
+        $manager->execAll();
+    }
     
     $script->shutdown();
 }
