@@ -661,7 +661,7 @@ class AlbotelematicoHelperBase
     function registerError( $error )
     {
         $log = array();        
-        $log['parameter'] = (string) $this->row->id_atto;
+        $log['parameter'] = (string) is_object( $this->row ) ? $this->row->id_atto : '';
         $log['error'] = $error;
         
         $logFileName = 'error_' . date( 'j-m-Y') . '.csv';

@@ -64,18 +64,25 @@ class ObjectAlbotelematicoHelper extends AlbotelematicoHelperBase implements Alb
         {
             if ( eZHTTPTool::getDataByUrl( $feedPath, true ) )
             {
-                $xmlOptions = new SQLIXMLOptions( array( 'xml_path' => $feedPath,
-                                                         'xml_parser' => 'simplexml' ));
-                $parser = new SQLIXMLParser( $xmlOptions );
-                $parsed = $parser->parse();
-                $this->dataCount += (int) $parsed->atti->numero_atti;
-                if ( $this->data instanceof SimpleXMLElement )
+                try
                 {
-                    self::append_simplexml( $this->data, $parsed->atti );
+                    $xmlOptions = new SQLIXMLOptions( array( 'xml_path' => $feedPath,
+                                                             'xml_parser' => 'simplexml' ));
+                    $parser = new SQLIXMLParser( $xmlOptions );
+                    $parsed = $parser->parse();
+                    $this->dataCount += (int) $parsed->atti->numero_atti;
+                    if ( $this->data instanceof SimpleXMLElement )
+                    {
+                        self::append_simplexml( $this->data, $parsed->atti );
+                    }
+                    else
+                    {
+                        $this->data = $parsed->atti;
+                    }
                 }
-                else
-                {
-                    $this->data = $parsed->atti;
+                catch( Exception $e )
+                {                                
+                    $this->registerError( $e->getMessage() );
                 }
             }
             else
