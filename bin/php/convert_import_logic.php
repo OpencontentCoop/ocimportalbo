@@ -342,6 +342,7 @@ try
 
     $anonymousUserId = eZINI::instance()->variable( 'UserSettings', 'AnonymousUserID' );
     $anonymousCache = eZUser::getCacheDir( $anonymousUserId ). '/user-'. $anonymousUserId . '.cache.php';
+    OpenPALog::output( "rm $anonymousCache" );
     eZClusterFileHandler::instance( $anonymousCache )->purge();
 
     
