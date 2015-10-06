@@ -509,6 +509,15 @@ class AlbotelematicoHelperBase
         }
         return $this->content;
     }
+
+    protected function fixEncoding( $string )
+    {
+        $currentEncoding = mb_detect_encoding( $string ) ;
+        if( $currentEncoding == "UTF-8" && mb_check_encoding( $string, "UTF-8" ) )
+            return $string;
+        else
+            return utf8_encode( $string );
+    }
     
     function setPublishedTimestamp()
     {
@@ -528,7 +537,7 @@ class AlbotelematicoHelperBase
             $value = str_replace( '&#00246;', 'ö', $value );
             $value = str_replace( '&#00224;','à', $value );
         }
-        return $value;
+        return $this->fixEncoding( $value );
     }
     
     function tempFile( $url )
