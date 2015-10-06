@@ -537,7 +537,7 @@ class AlbotelematicoHelperBase
             $value = str_replace( '&#00246;', 'ö', $value );
             $value = str_replace( '&#00224;','à', $value );
         }
-        return $this->fixEncoding( $value );
+        return $value;
     }
     
     function tempFile( $url )
