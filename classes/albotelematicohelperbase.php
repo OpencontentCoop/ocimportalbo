@@ -452,8 +452,8 @@ class AlbotelematicoHelperBase
 
     function fillContent()
     {
-        setlocale(LC_ALL, 'it_IT.utf8');
-        
+        //setlocale(LC_ALL, 'it_IT.utf8');
+
         $contentOptions = new SQLIContentOptions( array(
             'creator_id'            => $this->getCreatorID(),
             'section_id'            => $this->getSectionID(),
