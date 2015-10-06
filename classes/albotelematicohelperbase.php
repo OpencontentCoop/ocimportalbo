@@ -538,11 +538,6 @@ class AlbotelematicoHelperBase
             // importando gli atti della comunità rotaliana compaiono queste entities
             $value = str_replace( '&#00246;', 'ö', $value );
             $value = str_replace( '&#00224;','à', $value );
-            $isUTF8 = preg_match('//u', $value );
-            if ( !$isUTF8 )
-            {
-                $value = iconv("UTF-8","UTF-8//IGNORE",$value);
-            }
         }
         return $value;
     }
