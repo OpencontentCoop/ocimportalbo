@@ -896,6 +896,57 @@ class AlbotelematicoHelperBase
         return $section;
     }
 
+    /**
+     * Controlla se il feed porta a una reirezione e nel caso restituisce l'url corretto
+     * @param $feed
+     *
+     * @return string
+     * @throws SQLIXMLException
+     */
+    protected function checkFeedRedirect( $feed )
+    {
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $feed);
+        curl_setopt($ch, CURLOPT_HEADER, false);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt( $ch, CURLOPT_CONNECTTIMEOUT, (int) 1 );
+        curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
+
+        // Now check proxy settings
+        $ini = eZINI::instance();
+        $proxy = $ini->variable( 'ProxySettings', 'ProxyServer' );
+
+        $isHTTP = stripos( $feed, 'http' ) !== false;
+        if( $proxy && $isHTTP ) // cURL proxy support is only for HTTP
+        {
+            curl_setopt( $ch, CURLOPT_PROXY , $proxy );
+            $userName = $ini->variable( 'ProxySettings', 'User' );
+            $password = $ini->variable( 'ProxySettings', 'Password' );
+            if ( $userName )
+            {
+                curl_setopt( $ch, CURLOPT_PROXYUSERPWD, "$userName:$password" );
+            }
+        }
+
+        $xmlString = curl_exec( $ch );
+        if( $xmlString === false )
+        {
+            $errMsg = curl_error( $ch );
+            $errNum = curl_errno( $ch );
+            curl_close( $ch );
+            throw new SQLIXMLException( __METHOD__ . ' => Error with stream '.$path.' ('.$errMsg.')', $errNum );
+        }
+
+        curl_exec($ch);
+        $redirectURL = curl_getinfo( $ch,CURLINFO_EFFECTIVE_URL );
+        curl_close($ch);
+        
+        if ( !empty( $redirectURL ) && $feed != $redirectURL )
+        {
+            $feed = $redirectURL;
+        }
+        return $feed;
+    }
 
 
 }

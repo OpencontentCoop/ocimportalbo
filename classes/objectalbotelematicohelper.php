@@ -64,6 +64,7 @@ class ObjectAlbotelematicoHelper extends AlbotelematicoHelperBase implements Alb
         {
             if ( eZHTTPTool::getDataByUrl( $feedPath, true ) )
             {
+                $feedPath = $this->checkFeedRedirect( $feedPath );
                 try
                 {
                     $xmlOptions = new SQLIXMLOptions( array( 'xml_path' => $feedPath,
