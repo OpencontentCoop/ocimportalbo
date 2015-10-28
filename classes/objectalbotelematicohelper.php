@@ -64,11 +64,12 @@ class ObjectAlbotelematicoHelper extends AlbotelematicoHelperBase implements Alb
         {
             if ( eZHTTPTool::getDataByUrl( $feedPath, true ) )
             {
-                $xmlOptions = new SQLIXMLOptions( array( 'xml_path' => $feedPath,
-                                                         'xml_parser' => 'simplexml' ));
-                $parser = new SQLIXMLParser( $xmlOptions );
                 try
                 {
+                    $feedPath = AlbotelematicoHelperBase::checkFeedRedirect( $feedPath );
+                    $xmlOptions = new SQLIXMLOptions( array( 'xml_path' => $feedPath,
+                                                             'xml_parser' => 'simplexml' ));
+                    $parser = new SQLIXMLParser( $xmlOptions );
                     $parsed = $parser->parse();
                     $this->dataCount += (int) $parsed->atti->numero_atti;
                     if ( $this->data instanceof SimpleXMLElement )
@@ -81,8 +82,8 @@ class ObjectAlbotelematicoHelper extends AlbotelematicoHelperBase implements Alb
                     }
                 }
                 catch( Exception $e )
-                {
-                    OpenPALog::error( $e->getMessage() );
+                {                                
+                    $this->registerError( $e->getMessage() );
                 }
             }
             else
@@ -256,6 +257,7 @@ class ObjectAlbotelematicoHelper extends AlbotelematicoHelperBase implements Alb
             $progressBar = null;
             $i = 0;
 
+            $feed = AlbotelematicoHelperBase::checkFeedRedirect( $feed );
             $xmlOptions = new SQLIXMLOptions( array( 'xml_path' => $feed,
                                                      'xml_parser' => 'simplexml' ));
             $parser = new SQLIXMLParser( $xmlOptions );
@@ -326,20 +328,40 @@ class ObjectAlbotelematicoHelper extends AlbotelematicoHelperBase implements Alb
         $selectedSectionID = parent::getSection()->attribute( 'id' );
         if ( $object instanceOf eZContentObject && $object->attribute( 'section_id' ) != $selectedSectionID )
         {
-            //eZContentObjectTreeNode::assignSectionToSubTree( $object->attribute( 'main_node_id' ), $selectedSectionID );
-            
             $db = eZDB::instance();
             $db->query( "UPDATE ezcontentobject SET section_id='$selectedSectionID' WHERE id='$objectId'" );
             $db->query( "UPDATE ezsearch_object_word_link SET section_id='$selectedSectionID' WHERE id='$objectId'" );
             $db->commit();
-            
+
             eZContentOperationCollection::registerSearchObject( $object->attribute( 'id' ), null );
             $content = SQLIContent::fromContentObject( $object );
             $content->addPendingClearCacheIfNeeded();
-            eZCLI::instance()->output( '+' );
         }
     }
 
+
+    public static function addImmediateImporterByObjectId( $objectId )
+    {
+        $object = eZContentObject::fetch( $objectId );
+        if ( $object instanceof eZContentObject )
+        {
+            $importOptions = new SQLIImportHandlerOptions( array( 'object' => $objectId ) );
+            $currentImportHandler = 'alboimporthandler';
+
+            $row = array(
+                'handler'   => $currentImportHandler,
+                'user_id'   => eZUser::currentUserID(),
+            );
+            $scheduledImport = new SQLIImportItem( $row );
+
+            if ( $importOptions )
+            {
+                $scheduledImport->setAttribute( 'options', $importOptions );
+            }
+
+            $scheduledImport->store();
+        }
+    }
 
     public static function appendImporterByObjectId( $objectId )
     {

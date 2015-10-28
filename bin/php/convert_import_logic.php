@@ -308,6 +308,7 @@ try
         $user = eZUser::fetchByName( 'albotelematico' );
         eZUser::setCurrentlyLoggedInUser( $user , $user->attribute( 'contentobject_id' ) );
         ObjectAlbotelematicoHelper::appendImporterByObjectId( $containerObject->attribute( 'id' ) );
+        ObjectAlbotelematicoHelper::addImmediateImporterByObjectId( $containerObject->attribute( 'id' ) );
     }
 
     ########################################################################################
@@ -338,6 +339,20 @@ try
     eZRole::expireCache();    
     eZContentCacheManager::clearAllContentCache();
     eZUser::cleanupCache();
+
+    $anonymousUserId = eZINI::instance()->variable( 'UserSettings', 'AnonymousUserID' );
+    $anonymousCache = eZUser::getCacheDir( $anonymousUserId ). '/user-data-'. $anonymousUserId . '.cache.php';
+    OpenPALog::output( "rm $anonymousCache" );
+    eZClusterFileHandler::instance( $anonymousCache )->purge();
+
+//    if ( class_exists( 'ProcessManager' ) )
+//    {
+//        $scriptParameters = "-s" . OpenPABase::getBackendSiteaccessName() . " sqliimport_run";
+//        OpenPALog::output( "Run cron $scriptParameters" );
+//        $manager = ProcessManager::instance();
+//        $manager->addScript( "runcronjobs.php", $scriptParameters );
+//        $manager->execAll();
+//    }
     
     $script->shutdown();
 }
