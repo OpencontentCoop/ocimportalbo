@@ -777,7 +777,7 @@ class AlbotelematicoHelperBase
                     $object->assignState( $state );                    
                     if ( $identifier == "annullato" )
                     {            
-                    
+                        /** @var eZContentClass $class */
                         $class = $object->attribute( 'content_class' );
                         $name = $class->contentObjectName( $object );        
                         $object->setName( "[ANNULLATO] " . $name );        
@@ -786,7 +786,6 @@ class AlbotelematicoHelperBase
                     eZContentOperationCollection::registerSearchObject( $object->attribute( 'id' ), null );
                     $content = SQLIContent::fromContentObject( $object );
                     $content->addPendingClearCacheIfNeeded();
-                    eZCLI::instance()->output( '*' );
                 }
             }                    
         }
