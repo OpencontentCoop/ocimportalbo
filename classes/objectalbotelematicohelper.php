@@ -67,15 +67,22 @@ class ObjectAlbotelematicoHelper extends AlbotelematicoHelperBase implements Alb
                 $xmlOptions = new SQLIXMLOptions( array( 'xml_path' => $feedPath,
                                                          'xml_parser' => 'simplexml' ));
                 $parser = new SQLIXMLParser( $xmlOptions );
-                $parsed = $parser->parse();
-                $this->dataCount += (int) $parsed->atti->numero_atti;
-                if ( $this->data instanceof SimpleXMLElement )
+                try
                 {
-                    self::append_simplexml( $this->data, $parsed->atti );
+                    $parsed = $parser->parse();
+                    $this->dataCount += (int) $parsed->atti->numero_atti;
+                    if ( $this->data instanceof SimpleXMLElement )
+                    {
+                        self::append_simplexml( $this->data, $parsed->atti );
+                    }
+                    else
+                    {
+                        $this->data = $parsed->atti;
+                    }
                 }
-                else
+                catch( Exception $e )
                 {
-                    $this->data = $parsed->atti;
+                    OpenPALog::error( $e->getMessage() );
                 }
             }
             else
@@ -182,6 +189,7 @@ class ObjectAlbotelematicoHelper extends AlbotelematicoHelperBase implements Alb
                 if ( $relatedObject instanceof eZContentObject )
                 {
                     $location = $relatedObject->attribute( 'main_node_id' );
+                    SQLIContent::fromContentObject( $relatedObject )->addPendingClearCacheIfNeeded();
                 }
             }
         }
@@ -318,24 +326,17 @@ class ObjectAlbotelematicoHelper extends AlbotelematicoHelperBase implements Alb
         $selectedSectionID = parent::getSection()->attribute( 'id' );
         if ( $object instanceOf eZContentObject && $object->attribute( 'section_id' ) != $selectedSectionID )
         {
-            if ( eZContentObjectTreeNode::fetch( $object->attribute( 'main_node_id' ) ) instanceof eZContentObjectTreeNode )
-            {
-                if ( eZOperationHandler::operationIsAvailable( 'content_updatesection' ) )
-                {
-                    $operationResult = eZOperationHandler::execute( 'content',
-                        'updatesection',
-                        array(
-                            'node_id'             => $object->attribute( 'main_node_id' ),
-                            'selected_section_id' => $selectedSectionID ),
-                        null,
-                        true );
-
-                }
-                else
-                {
-                    eZContentOperationCollection::updateSection( $object->attribute( 'main_node_id' ), $selectedSectionID );
-                }
-            }
+            //eZContentObjectTreeNode::assignSectionToSubTree( $object->attribute( 'main_node_id' ), $selectedSectionID );
+            
+            $db = eZDB::instance();
+            $db->query( "UPDATE ezcontentobject SET section_id='$selectedSectionID' WHERE id='$objectId'" );
+            $db->query( "UPDATE ezsearch_object_word_link SET section_id='$selectedSectionID' WHERE id='$objectId'" );
+            $db->commit();
+            
+            eZContentOperationCollection::registerSearchObject( $object->attribute( 'id' ), null );
+            $content = SQLIContent::fromContentObject( $object );
+            $content->addPendingClearCacheIfNeeded();
+            eZCLI::instance()->output( '+' );
         }
     }
 

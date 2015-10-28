@@ -755,31 +755,29 @@ class AlbotelematicoHelperBase
 
     public static function setState( $objectID, $identifier )
     {
-        $id = self::getStateID( $identifier );
-        if ( eZOperationHandler::operationIsAvailable( 'content_updateobjectstate' ) )
+        $object = eZContentObject::fetch( $objectID );
+        if ( $object instanceof eZContentObject )
         {
-            eZOperationHandler::execute( 'content', 'updateobjectstate',
-                array( 'object_id'     => $objectID,
-                       'state_id_list' => array( $id ) ) );
-        }
-        else
-        {
-            eZContentOperationCollection::updateObjectState( $objectID, array( $id ) );
-        }
-        if ( $identifier == "annullato" )
-        {
-            $object = eZContentObject::fetch( $objectID );
-            if ( $object instanceof eZContentObject )
-            {
-                $class = $object->attribute( 'content_class' );
-                $name = $class->contentObjectName( $object );        
-                $object->setName( "[ANNULLATO] " . $name );        
-                $object->store();
-                
-                eZSearch::addObject( $object );
-                $content = SQLIContent::fromContentObject( $object );
-                $content->addPendingClearCacheIfNeeded();
-            }
+            $state = self::getState( $identifier );
+            if ( $state instanceof eZContentObjectState )
+            {            
+                if ( !in_array( 'albotelematico/' . $identifier, $object->stateIdentifierArray() ) )
+                {
+                    $object->assignState( $state );                    
+                    if ( $identifier == "annullato" )
+                    {            
+                    
+                        $class = $object->attribute( 'content_class' );
+                        $name = $class->contentObjectName( $object );        
+                        $object->setName( "[ANNULLATO] " . $name );        
+                        $object->store();
+                    }
+                    eZContentOperationCollection::registerSearchObject( $object->attribute( 'id' ), null );
+                    $content = SQLIContent::fromContentObject( $object );
+                    $content->addPendingClearCacheIfNeeded();
+                    eZCLI::instance()->output( '*' );
+                }
+            }                    
         }
     }
 
@@ -857,18 +855,23 @@ class AlbotelematicoHelperBase
         */
     }
 
+    private static $_section;
+    
     /**
      * @return eZSection
      * @throws Exception
      */
     public static function getSection()
     {
-        $section = eZPersistentObject::fetchObject( eZSection::definition(), null, array( "identifier" => self::SECTION_IDENTIFIER ), true );
-        if ( !$section instanceOf eZSection )
+        if ( self::$_section === null )
         {
-            throw new Exception( "Section {self::SECTION_IDENTIFIER} non trovata" );
+            self::$_section = eZPersistentObject::fetchObject( eZSection::definition(), null, array( "identifier" => self::SECTION_IDENTIFIER ), true );
+            if ( !self::$_section instanceOf eZSection )
+            {
+                throw new Exception( "Section {self::SECTION_IDENTIFIER} non trovata" );
+            }
         }
-        return $section;
+        return self::$_section;
     }
 
     public static function createSection()

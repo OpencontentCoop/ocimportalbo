@@ -101,7 +101,7 @@ class AlboImportHandler extends SQLIImportAbstractHandler implements ISQLIImport
     }
 
     public function process( $row )
-    {        
+    {                
         if ( !$this->helper instanceof AlbotelematicoHelperInterface )
         {
             throw new Exception( "helper non implementa l'interfaccia corretta" );
