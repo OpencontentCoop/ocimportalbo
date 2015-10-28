@@ -903,7 +903,7 @@ class AlbotelematicoHelperBase
      * @return string
      * @throws SQLIXMLException
      */
-    protected function checkFeedRedirect( $feed )
+    protected static function checkFeedRedirect( $feed )
     {
         $ch = curl_init();
         curl_setopt( $ch, CURLOPT_URL, $feed );

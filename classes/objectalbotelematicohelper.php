@@ -64,9 +64,9 @@ class ObjectAlbotelematicoHelper extends AlbotelematicoHelperBase implements Alb
         {
             if ( eZHTTPTool::getDataByUrl( $feedPath, true ) )
             {
-                $feedPath = $this->checkFeedRedirect( $feedPath );
                 try
                 {
+                    $feedPath = AlbotelematicoHelperBase::checkFeedRedirect( $feedPath );
                     $xmlOptions = new SQLIXMLOptions( array( 'xml_path' => $feedPath,
                                                              'xml_parser' => 'simplexml' ));
                     $parser = new SQLIXMLParser( $xmlOptions );
@@ -256,6 +256,7 @@ class ObjectAlbotelematicoHelper extends AlbotelematicoHelperBase implements Alb
             $progressBar = null;
             $i = 0;
 
+            $feed = AlbotelematicoHelperBase::checkFeedRedirect( $feed );
             $xmlOptions = new SQLIXMLOptions( array( 'xml_path' => $feed,
                                                      'xml_parser' => 'simplexml' ));
             $parser = new SQLIXMLParser( $xmlOptions );

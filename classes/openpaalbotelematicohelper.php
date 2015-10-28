@@ -18,6 +18,7 @@ class OpenPaAlbotelematicoHelper extends AlbotelematicoHelperBase implements Alb
             $this->feed[] = $feedPath . ': ' . var_export( eZHTTPTool::getDataByUrl( $feedPath, true ), 1 );
             if ( eZHTTPTool::getDataByUrl( $feedPath, true ) )
             {
+                $feedPath = AlbotelematicoHelperBase::checkFeedRedirect( $feedPath );
                 $xmlOptions = new SQLIXMLOptions( array( 'xml_path' => $feedPath,
                                                          'xml_parser' => 'simplexml' ));
                 $parser = new SQLIXMLParser( $xmlOptions );
