@@ -906,9 +906,10 @@ class AlbotelematicoHelperBase
     protected function checkFeedRedirect( $feed )
     {
         $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $feed);
-        curl_setopt($ch, CURLOPT_HEADER, false);
-        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt( $ch, CURLOPT_URL, $feed );
+        curl_setopt( $ch, CURLOPT_HEADER, false );
+        curl_setopt( $ch, CURLOPT_NOBODY, 1 );
+        curl_setopt( $ch, CURLOPT_FOLLOWLOCATION, true );
         curl_setopt( $ch, CURLOPT_CONNECTTIMEOUT, (int) 1 );
         curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
 
@@ -940,13 +941,11 @@ class AlbotelematicoHelperBase
         curl_exec($ch);
         $redirectURL = curl_getinfo( $ch,CURLINFO_EFFECTIVE_URL );
         curl_close($ch);
-        
+
         if ( !empty( $redirectURL ) && $feed != $redirectURL )
         {
             $feed = $redirectURL;
         }
         return $feed;
     }
-
-
 }
