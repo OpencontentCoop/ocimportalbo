@@ -223,7 +223,7 @@ class ObjectAlbotelematicoHelper extends AlbotelematicoHelperBase implements Alb
             }
         }
 
-        if ( empty( $this->locations ) )
+        if ( empty( $this->locations ) && $this->object instanceof eZContentObject )
         {
             //throw new AlboFatalException( "Non trovo la collocazione per atti di tipo $identifier $perContoDi" );
             $this->locations = array( $this->object->attribute( 'main_node_id' ) );
