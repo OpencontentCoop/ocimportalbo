@@ -70,5 +70,7 @@ $cli->notice();
 
 $cli->warning( "Collocazioni:" );
 var_export( $locations );
+$cli->notice();
+$cli->notice();
 
 $script->shutdown();
