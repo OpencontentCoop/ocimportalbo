@@ -23,6 +23,9 @@ $options = $script->getOptions(
 $script->initialize();
 $cli = eZCLI::instance();
 
+$user = eZUser::fetchByName( 'admin' );
+eZUser::setCurrentlyLoggedInUser( $user , $user->attribute( 'contentobject_id' ) );
+
 $handlerOptions = array(
     'object' => $options['id']
 );
