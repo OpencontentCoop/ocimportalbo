@@ -42,7 +42,16 @@ $helper->setCurrentRow( $row );
 
 $classIdentifier = $helper->getClassIdentifier();
 $values = $helper->attributesMap();
-$locations = $helper->getLocations();
+$locations = array();
+$locationsIds = $helper->getLocations();
+foreach( $locationsIds as $id )
+{
+    $location = eZContentObjectTreeNode::fetch( $id );
+    if ( $location )
+        $locations[] = $location->attribute( 'path_string' );
+    else
+        $locations[] = "Node not found for {$id}";
+}
 
 $cli->notice( "Classe: {$classIdentifier}" );
 
