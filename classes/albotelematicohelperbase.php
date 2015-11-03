@@ -408,7 +408,12 @@ class AlbotelematicoHelperBase
                         }
                     }
                 } break;
-                
+
+                case 'organo_emanante':
+                {
+                    $this->values[$index] = (string) $value;
+                }
+
                 default:
                 {
                     $value = (string) $value;
