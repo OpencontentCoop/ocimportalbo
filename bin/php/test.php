@@ -48,7 +48,7 @@ foreach( $locationsIds as $id )
 {
     $location = eZContentObjectTreeNode::fetch( $id );
     if ( $location )
-        $locations[] = $location->attribute( 'path_string' );
+        $locations[] = $location->attribute( 'path_identification_string' );
     else
         $locations[] = "Node not found for {$id}";
 }
