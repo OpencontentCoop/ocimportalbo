@@ -250,6 +250,14 @@ class AlbotelematicoHelperBase
                 return $parameters[2]; // Delibere del Commissario
             }
 
+            foreach( array( 'consiglio', 'consiliar' ) as $term )
+            {
+                if ( strpos( strtolower( $oggetto ), $term ) !== false )
+                {
+                    return $parameters[1]; // Delibere di Consiglio
+                }
+            }
+
             return $parameters[0]; // Delibere di Giunta (default)
         }
 
@@ -285,6 +293,14 @@ class AlbotelematicoHelperBase
             if ( strpos( strtolower( $organoEmanante ), 'commissario' ) !== false )
             {
                 return 'Commissario';
+            }
+
+            foreach( array( 'consiglio', 'consiliar' ) as $term )
+            {
+                if ( strpos( strtolower( $oggetto ), $term ) !== false )
+                {
+                    return 'Consiglio';
+                }
             }
 
             return 'Giunta'; // Delibere di Giunta (default)
