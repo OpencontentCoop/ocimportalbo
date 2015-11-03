@@ -34,6 +34,8 @@ $handlerConfArray = eZINI::instance( 'sqliimport.ini' )->group( 'albo-HandlerSet
 $helper = new ObjectAlbotelematicoHelper();
 $helper->loadArguments( $handlerOptions, $handlerConfArray );
 
+$helper->loadObject();
+
 $row = simplexml_load_string( $options['row'] );
 
 $helper->setCurrentRow( $row );

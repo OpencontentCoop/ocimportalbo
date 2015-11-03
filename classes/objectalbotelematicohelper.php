@@ -29,7 +29,7 @@ class ObjectAlbotelematicoHelper extends AlbotelematicoHelperBase implements Alb
      */
     public $data;
 
-    protected function loadObject()
+    public function loadObject()
     {
         $objectID = $this->arguments['object'];
         $this->object = eZContentObject::fetch( $objectID );
