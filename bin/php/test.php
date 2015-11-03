@@ -53,12 +53,14 @@ foreach( $locationsIds as $id )
         $locations[] = "Node not found for {$id}";
 }
 
-$cli->notice( "Classe: {$classIdentifier}" );
+$cli->warning( "Classe:" );
+$cli->notice( $classIdentifier );
 
-$cli->notice( "Valori:" );
+$cli->warning( "Valori:" );
 var_export( $values );
+$cli->notice();
 
-$cli->notice( "Collocazioni:" );
+$cli->warning( "Collocazioni:" );
 var_export( $locations );
 
 $script->shutdown();
