@@ -41,7 +41,8 @@ $row = simplexml_load_string( $options['row'] );
 $helper->setCurrentRow( $row );
 
 $classIdentifier = $helper->getClassIdentifier();
-$values = $helper->attributesMap();
+$values = $helper->prepareValues();
+$eZValues = $helper->attributesMap();
 $locations = array();
 $locationsIds = $helper->getLocations();
 foreach( $locationsIds as $id )
@@ -55,9 +56,16 @@ foreach( $locationsIds as $id )
 
 $cli->warning( "Classe:" );
 $cli->notice( $classIdentifier );
+$cli->notice();
 
-$cli->warning( "Valori:" );
+$cli->warning( "Valori albo:" );
 var_export( $values );
+$cli->notice();
+$cli->notice();
+
+$cli->warning( "Valori ez:" );
+var_export( $eZValues );
+$cli->notice();
 $cli->notice();
 
 $cli->warning( "Collocazioni:" );
