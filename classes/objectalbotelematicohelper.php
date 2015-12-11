@@ -69,7 +69,7 @@ class ObjectAlbotelematicoHelper extends AlbotelematicoHelperBase implements Alb
                     $feedPath = AlbotelematicoHelperBase::checkFeedRedirect( $feedPath );
                     $xmlOptions = new SQLIXMLOptions( array( 'xml_path' => $feedPath,
                                                              'xml_parser' => 'simplexml' ));
-                    $parser = new SQLIXMLParser( $xmlOptions );
+                    $parser = new AlboXMLParser( $xmlOptions );
                     $parsed = $parser->parse();
                     $this->dataCount += (int) $parsed->atti->numero_atti;
                     if ( $this->data instanceof SimpleXMLElement )
