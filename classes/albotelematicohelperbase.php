@@ -245,6 +245,14 @@ class AlbotelematicoHelperBase
                 }
             }
             
+            foreach( array( 'giunta' ) as $term )
+            {
+                if ( strpos( strtolower( $organoEmanante ), $term ) !== false )
+                {
+                    return $parameters[0]; // Delibere di giunta
+                }
+            }
+            
             if ( strpos( strtolower( $organoEmanante ), 'commissario' ) !== false && isset( $parameters[2] ) )
             {
                 return $parameters[2]; // Delibere del Commissario
