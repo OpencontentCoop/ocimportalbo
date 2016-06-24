@@ -4,26 +4,41 @@ class ObjectHandlerServiceContentAlboTelematico extends ObjectHandlerServiceBase
 {
     function run()
     {
-        $this->data['is_container'] = $this->isContainer();
+        $this->fnData['is_container'] = 'isContainer';
         $this->data['container_template'] = "design:openpa/services/content_albotelematico/container.tpl";
-        $this->data['is_atto'] = $this->isAtto();
-        $this->data['states'] = $this->getStates();
-
+        $this->fnData['is_atto'] = 'isAtto';
+        $this->fnData['states'] = 'getStates';
+        $this->fnData['default_state_ids'] = 'getDefaultStateIds';
+        $this->fnData['archive_state_ids'] = 'getArchiveStateIds';
+    }
+    
+    protected function getDefaultStateIds()
+    {
         try
         {
-            $this->data['default_state_ids'] = array(
+            return array(
                 AlbotelematicoHelperBase::getStateID( AlbotelematicoHelperBase::STATE_VISIBILE ),
                 AlbotelematicoHelperBase::getStateID( AlbotelematicoHelperBase::STATE_ANNULLATO )
-            );
-            $this->data['archive_state_ids'] = array(
+            );            
+        }
+        catch( Exception $e )
+        {
+            return array();            
+        }
+    }
+    
+    protected function getArchiveStateIds()
+    {
+        try
+        {            
+            return array(
                 AlbotelematicoHelperBase::getStateID( AlbotelematicoHelperBase::STATE_ARCHIVIO_RICERCABILE ),
                 AlbotelematicoHelperBase::getStateID( AlbotelematicoHelperBase::STATE_ARCHIVIO_NON_RICERCABILE )
             );
         }
         catch( Exception $e )
         {
-            $this->data['default_state_ids'] = array();
-            $this->data['archive_state_ids'] = array();
+            return array();
         }
     }
 
