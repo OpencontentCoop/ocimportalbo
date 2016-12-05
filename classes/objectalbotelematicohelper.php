@@ -93,6 +93,46 @@ class ObjectAlbotelematicoHelper extends AlbotelematicoHelperBase implements Alb
         }
         //eZFile::create( 'data.xml', eZSys::cacheDirectory(), $this->data->saveXML() );
     }
+    
+    public function findAtto($idAtto)
+    {
+        $this->loadObject();
+        
+        $feedPaths = $this->getFeeds();
+        foreach( $feedPaths as $feedPath )
+        {
+            if ( eZHTTPTool::getDataByUrl( $feedPath, true ) )
+            {
+                try
+                {
+                    $feedPath = AlbotelematicoHelperBase::checkFeedRedirect( $feedPath );
+                    $xmlOptions = new SQLIXMLOptions( array( 'xml_path' => $feedPath,
+                                                             'xml_parser' => 'simplexml' ));
+                    $parser = new AlboXMLParser( $xmlOptions );
+                    $parsed = $parser->parse();
+                    $index = 0;
+                    $rowCount = count( $parsed->atti->atto );
+                    while( $index < $rowCount )
+                    {
+                        $atto = $parsed->atti->atto[$index];                        
+                        $index++;                        
+                        if ((string)$atto->id_atto == $idAtto){
+                            return $atto;
+                        }
+                    }
+                }
+                catch( Exception $e )
+                {
+                    $this->registerError( $e->getMessage() );
+                }
+            }
+            else
+            {
+                throw new AlboFatalException( 'Url non risolto: ' . $feedPath );
+            }
+        }
+        return null;
+    }
 
     public function isImported()
     {
