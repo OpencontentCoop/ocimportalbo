@@ -39,11 +39,15 @@ class AlboImportHandler extends SQLIImportAbstractHandler implements ISQLIImport
 
     private $registerMail = array();
     
+    private static $URLTranslatorSeparator;
+    
     public function __construct( SQLIImportHandlerOptions $options = null )
     {
         parent::__construct( $options );
         $this->remoteIDPrefix = $this->getHandlerIdentifier() . '-';
-        $this->options = $options;        
+        $this->options = $options;
+        $ini = eZINI::instance();
+        self::$URLTranslatorSeparator = strtolower( $ini->variable( "URLTranslator", "WordSeparator" ) );
     }
 
     public function initialize()
@@ -141,7 +145,14 @@ class AlboImportHandler extends SQLIImportAbstractHandler implements ISQLIImport
             }                    
             
             $publisher = SQLIContentPublisher::getInstance();
+            
+            $this->startCharTransformWorkaround();
+            
             $publisher->publish( $content );
+            
+            $this->endCharTransformWorkaround();
+            
+            $this->fixUrlAlias($content);      
             
             $this->cli->output( 'Published ' . $this->helper->getRemoteID() );
             
@@ -178,8 +189,9 @@ class AlboImportHandler extends SQLIImportAbstractHandler implements ISQLIImport
             
             $mail = new eZMail();                                
             $mail->setSender( eZINI::instance()->variable( 'MailSettings', 'AdminEmail' ) );            
-            $mail->setReceiver( 'logcomunweb@libero.it' );
-            $mail->addCc( 'logger@opencontent.it' );
+            $mail->setReceiver( 'innovazione@comunitrentini.it' );
+            $mail->addCc( 'assistenza@albotelematico.tn.it' );
+            $mail->addCc( 'lr@opencontent.it' );
             
             $sitename = eZSys::hostname();
             $arguments = var_export( $this->helper->arguments, 1 );
@@ -240,5 +252,65 @@ class AlboImportHandler extends SQLIImportAbstractHandler implements ISQLIImport
 
     public function getProgressionNotes()
     {
-    }    
+    }
+    
+    private function removeCharTransformCacheFile($group = 'lowercase', $charset = false)
+    {
+        $charsetName = ( $charset === false ? eZTextCodec::internalCharset() : eZCharsetInfo::realCharsetCode( $charset ) );
+        $keyText = 'Group:' . $group;
+        $key = eZSys::ezcrc32( $keyText . '-' . $charset );
+        $prefix = 'g-' . $group . '-';
+        $suffix = '-' . $charsetName;    
+        $path = eZCharTransform::cachedTransformationPath() . '/' . $prefix . sprintf( "%u", $key ) . $suffix . '.ctt.php'; // ctt=charset transform table
+        if (file_exists($path)){
+            unlink($path);
+        }
+    }
+    
+    private function startCharTransformWorkaround()
+    {
+        unset($GLOBALS['eZCharTransformInstance']);
+        unset($GLOBALS['eZCharTransform_wordSeparator']);
+        
+        eZINI::instance()->resetCache();
+        eZINI::instance()->setVariable( "URLTranslator", "WordSeparator", 'space' );
+        
+        eZINI::instance('transform.ini')->resetCache();
+        eZINI::instance('transform.ini')->setVariable('lowercase', 'Commands', array('url_cleanup','lowercase'));    
+        
+        $this->removeCharTransformCacheFile();
+        
+        $trans = eZCharTransform::instance();
+        $test = $trans->transformByGroup( 'TEST TEST', 'lowercase' );
+    }
+    
+    private function endCharTransformWorkaround()
+    {
+        unset($GLOBALS['eZCharTransformInstance']);
+        unset($GLOBALS['eZCharTransform_wordSeparator']);
+        
+        eZINI::instance()->resetCache();
+        eZINI::instance()->setVariable( "URLTranslator", "WordSeparator", self::$URLTranslatorSeparator );
+        
+        eZINI::instance('transform.ini')->resetCache();
+        eZINI::instance('transform.ini')->setVariable('lowercase', 'Commands', array('lowercase'));
+        
+        $this->removeCharTransformCacheFile();
+        
+        $trans = eZCharTransform::instance();
+        $test = $trans->transformByGroup( 'TEST TEST', 'lowercase' );
+        $test = $trans->transformByGroup( 'TEST TEST', 'urlalias' );
+    }
+    
+    private function fixUrlAlias(SQLIContent $content)
+    {
+        $object = $content->getRawContentObject();
+            
+        $nodes = $object->assignedNodes();
+        foreach ( $nodes as $node )
+        {
+            $node->setName( $object->attribute( 'name' ) );
+            $node->updateSubTreePath();
+        }
+    }
 }
