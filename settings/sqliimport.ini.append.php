@@ -14,8 +14,8 @@ ClassName=AlboImportHandler
 DefaultParentNodeID=985
 StreamTimeout=
 SourceComuni=extension/ocimportalbo/data/lista_comuni.xml
-FeedBase=http://www.albotelematico.tn.it/bacheca/---/exc.xml
-FileUrl=http://www.albotelematico.tn.it/ftp/ANNO/ENTE/
+FeedBase=https://www.albotelematico.tn.it/bacheca/---/exc.xml
+FileUrl=https://www.albotelematico.tn.it/ftp/ANNO/ENTE/
 
 [albo-HandlerSettings]
 INI=alboimporthandler
@@ -25,8 +25,8 @@ ClassName=AlboImportHandler
 DefaultParentNodeID=985
 StreamTimeout=
 SourceComuni=extension/ocimportalbo/data/lista_comuni.xml
-FeedBase=http://www.albotelematico.tn.it/bacheca/---/exc.xml
-FileUrl=http://www.albotelematico.tn.it/ftp/ANNO/ENTE/
+FeedBase=https://www.albotelematico.tn.it/bacheca/---/exc.xml
+FileUrl=https://www.albotelematico.tn.it/ftp/ANNO/ENTE/
 
 
 #[archivioalboimporthandler-HandlerSettings]

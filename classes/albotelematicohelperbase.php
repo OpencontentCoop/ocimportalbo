@@ -411,8 +411,10 @@ class AlbotelematicoHelperBase
                     {
                         foreach ( $value->children() as $allegato )
                         {
-                            $this->values['allegati'][] = array( 'path' => 'allegati/' . rawurlencode( $allegato->url ),
-                                                                 'name' => (string) $allegato->titolo );
+                            if ($allegato->getName() == 'allegato'){
+                                $this->values['allegati'][] = array( 'path' => 'allegati/' . rawurlencode( $allegato->url ),
+                                                                     'name' => (string) $allegato->titolo );
+                            }
                         }
                     }
                 } break;
@@ -573,10 +575,11 @@ class AlbotelematicoHelperBase
     
     function tempFile( $url )
     {        
-        if ( OpenPABase::getDataByURL( $url, true ) )
+        $data = OpenPABase::getDataByURL( $url, false, false, 20, 40 );
+        if ( $data )
         {                            
             $name = basename( $url );
-            $file = eZFile::create( $name, $this->tempVarDir, OpenPABase::getDataByURL( $url ) );
+            $file = eZFile::create( $name, $this->tempVarDir, $data );
             $filePath = rtrim( $this->tempVarDir, '/' ) . '/' . $name;
             $this->removeFiles[] = $filePath;        
             return $filePath;
