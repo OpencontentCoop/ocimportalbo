@@ -62,7 +62,12 @@ class ObjectAlbotelematicoHelper extends AlbotelematicoHelperBase implements Alb
         $feedPaths = $this->getFeeds();
         foreach( $feedPaths as $feedPath )
         {
-            if ( OpenPABase::getDataByUrl( $feedPath, true, false, 2, 25 ) )
+
+            if ( OpenPABase::getDataByUrl( 
+                    $feedPath, true, false, 
+                    OpenPAINI::variable('ImportAlboTelematico', 'ConnectionTimeout', 20), 
+                    OpenPAINI::variable('ImportAlboTelematico', 'Timeout', 35) 
+               ) )
             {
                 try
                 {
