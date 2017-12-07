@@ -62,7 +62,7 @@ class ObjectAlbotelematicoHelper extends AlbotelematicoHelperBase implements Alb
         $feedPaths = $this->getFeeds();
         foreach( $feedPaths as $feedPath )
         {
-            if ( OpenPABase::getDataByUrl( $feedPath, true, false, 2, 15 ) )
+            if ( OpenPABase::getDataByUrl( $feedPath, true, false, 20, 35 ) )
             {
                 try
                 {
