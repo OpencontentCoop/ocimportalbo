@@ -106,8 +106,11 @@ class ObjectAlbotelematicoHelper extends AlbotelematicoHelperBase implements Alb
         $feedPaths = $this->getFeeds();
         foreach( $feedPaths as $feedPath )
         {
-            if ( eZHTTPTool::getDataByUrl( $feedPath, true ) )
-            {
+            if (OpenPABase::getDataByUrl(
+                $feedPath, true, false,
+                OpenPAINI::variable('ImportAlboTelematico', 'ConnectionTimeout', 20),
+                OpenPAINI::variable('ImportAlboTelematico', 'Timeout', 35)
+            )) {
                 try
                 {
                     $feedPath = AlbotelematicoHelperBase::checkFeedRedirect( $feedPath );
@@ -293,7 +296,11 @@ class ObjectAlbotelematicoHelper extends AlbotelematicoHelperBase implements Alb
     {
         $feed = AlbotelematicoHelperBase::checkFeedRedirect( $feed );
         //http://www.albotelematico.tn.it/archivio_stato/ala/exc.xml
-        if ( eZHTTPTool::getDataByUrl( $feed, true ) )
+        if (OpenPABase::getDataByUrl(
+            $feed, true, false,
+            OpenPAINI::variable('ImportAlboTelematico', 'ConnectionTimeout', 20),
+            OpenPAINI::variable('ImportAlboTelematico', 'Timeout', 35)
+        ))
         {
             $db = eZDB::instance();
             $db->setErrorHandling( eZDB::ERROR_HANDLING_EXCEPTIONS );
