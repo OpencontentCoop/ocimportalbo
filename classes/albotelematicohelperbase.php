@@ -703,9 +703,13 @@ class AlbotelematicoHelperBase
     
     function registerError( $error )
     {
-        $log = array();        
-        $log['parameter'] = (string) is_object( $this->row ) ? $this->row->id_atto : '';
+        $log = array();
+        $idAtto = (string) is_object( $this->row ) ? $this->row->id_atto : '';
+        $log['parameter'] = $idAtto;
         $log['error'] = $error;
+
+        $current = OpenPABase::getCurrentSiteaccessIdentifier();
+        eZLog::write("[$current] $error ($idAtto)", 'sqliimport-error.log');
         
         $logFileName = 'error_' . date( 'j-m-Y') . '.csv';
         $logFile = $this->tempLogDir . $logFileName;
@@ -939,47 +943,51 @@ class AlbotelematicoHelperBase
      */
     protected static function checkFeedRedirect( $feed )
     {
-        $ch = curl_init();
-        curl_setopt( $ch, CURLOPT_URL, $feed );
-        curl_setopt( $ch, CURLOPT_HEADER, false );
-        curl_setopt( $ch, CURLOPT_NOBODY, 1 );
-        curl_setopt( $ch, CURLOPT_FOLLOWLOCATION, true );
-        curl_setopt( $ch, CURLOPT_CONNECTTIMEOUT, (int) 1 );
-        curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
-
-        // Now check proxy settings
-        $ini = eZINI::instance();
-        $proxy = $ini->variable( 'ProxySettings', 'ProxyServer' );
-
-        $isHTTP = stripos( $feed, 'http' ) !== false;
-        if( $proxy && $isHTTP ) // cURL proxy support is only for HTTP
-        {
-            curl_setopt( $ch, CURLOPT_PROXY , $proxy );
-            $userName = $ini->variable( 'ProxySettings', 'User' );
-            $password = $ini->variable( 'ProxySettings', 'Password' );
-            if ( $userName )
-            {
-                curl_setopt( $ch, CURLOPT_PROXYUSERPWD, "$userName:$password" );
-            }
+        if (stripos( $feed, 'http://' ) !== false){
+            return str_replace('http://', 'https://', $feed);
         }
 
-        $xmlString = curl_exec( $ch );
-        if( $xmlString === false )
-        {
-            $errMsg = curl_error( $ch );
-            $errNum = curl_errno( $ch );
-            curl_close( $ch );
-            throw new SQLIXMLException( __METHOD__ . ' => Error with stream '.$path.' ('.$errMsg.')', $errNum );
-        }
-
-        curl_exec($ch);
-        $redirectURL = curl_getinfo( $ch,CURLINFO_EFFECTIVE_URL );
-        curl_close($ch);
-
-        if ( !empty( $redirectURL ) && $feed != $redirectURL )
-        {
-            $feed = $redirectURL;
-        }
+//        $ch = curl_init();
+//        curl_setopt( $ch, CURLOPT_URL, $feed );
+//        curl_setopt( $ch, CURLOPT_HEADER, false );
+//        curl_setopt( $ch, CURLOPT_NOBODY, 1 );
+//        curl_setopt( $ch, CURLOPT_FOLLOWLOCATION, true );
+//        curl_setopt( $ch, CURLOPT_CONNECTTIMEOUT, (int) 1 );
+//        curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
+//
+//        // Now check proxy settings
+//        $ini = eZINI::instance();
+//        $proxy = $ini->variable( 'ProxySettings', 'ProxyServer' );
+//
+//        $isHTTP = stripos( $feed, 'http' ) !== false;
+//        if( $proxy && $isHTTP ) // cURL proxy support is only for HTTP
+//        {
+//            curl_setopt( $ch, CURLOPT_PROXY , $proxy );
+//            $userName = $ini->variable( 'ProxySettings', 'User' );
+//            $password = $ini->variable( 'ProxySettings', 'Password' );
+//            if ( $userName )
+//            {
+//                curl_setopt( $ch, CURLOPT_PROXYUSERPWD, "$userName:$password" );
+//            }
+//        }
+//
+//        $xmlString = curl_exec( $ch );
+//        if( $xmlString === false )
+//        {
+//            $errMsg = curl_error( $ch );
+//            $errNum = curl_errno( $ch );
+//            curl_close( $ch );
+//            throw new SQLIXMLException( __METHOD__ . ' => Error with stream '.$path.' ('.$errMsg.')', $errNum );
+//        }
+//
+//        curl_exec($ch);
+//        $redirectURL = curl_getinfo( $ch,CURLINFO_EFFECTIVE_URL );
+//        curl_close($ch);
+//
+//        if ( !empty( $redirectURL ) && $feed != $redirectURL )
+//        {
+//            $feed = $redirectURL;
+//        }
         return $feed;
     }
 }
