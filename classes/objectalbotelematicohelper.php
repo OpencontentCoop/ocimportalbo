@@ -291,6 +291,7 @@ class ObjectAlbotelematicoHelper extends AlbotelematicoHelperBase implements Alb
 
     public static function fixObjectStates( $feed )
     {
+        $feed = AlbotelematicoHelperBase::checkFeedRedirect( $feed );
         //http://www.albotelematico.tn.it/archivio_stato/ala/exc.xml
         if ( eZHTTPTool::getDataByUrl( $feed, true ) )
         {
@@ -302,7 +303,6 @@ class ObjectAlbotelematicoHelper extends AlbotelematicoHelperBase implements Alb
             $progressBar = null;
             $i = 0;
 
-            $feed = AlbotelematicoHelperBase::checkFeedRedirect( $feed );
             $xmlOptions = new SQLIXMLOptions( array( 'xml_path' => $feed,
                                                      'xml_parser' => 'simplexml' ));
             $parser = new SQLIXMLParser( $xmlOptions );

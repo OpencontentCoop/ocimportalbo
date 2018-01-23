@@ -943,7 +943,6 @@ class AlbotelematicoHelperBase
      * @param $feed
      *
      * @return string
-     * @throws SQLIXMLException
      */
     protected static function checkFeedRedirect( $feed )
     {
