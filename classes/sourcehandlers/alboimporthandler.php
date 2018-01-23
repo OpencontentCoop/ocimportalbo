@@ -78,6 +78,7 @@ class AlboImportHandler extends SQLIImportAbstractHandler implements ISQLIImport
             $this->dataSource = $this->helper->getData();
         } catch (Exception $e) {
             $this->initializeError = $e->getMessage();
+            AlbotelematicoHelperBase::logError($e->getMessage());
             $this->dataSource = new SimpleXMLElement('<atti></atti>');
         }
         $this->cli->output($this->helper->getDataCount() . ' atti caricati');

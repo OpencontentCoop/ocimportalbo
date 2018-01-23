@@ -701,16 +701,20 @@ class AlbotelematicoHelperBase
         }
     }
     
+    public static function logError($error)
+    {
+        $current = OpenPABase::getCurrentSiteaccessIdentifier();
+        eZLog::write("[$current] $error", 'sqliimport-error.log');
+    }
+
     function registerError( $error )
     {
         $log = array();
-        $idAtto = (string) is_object( $this->row ) ? $this->row->id_atto : '';
-        $log['parameter'] = $idAtto;
+        $log['parameter'] = (string) is_object( $this->row ) ? $this->row->id_atto : '';
         $log['error'] = $error;
 
-        $current = OpenPABase::getCurrentSiteaccessIdentifier();
-        eZLog::write("[$current] $error ($idAtto)", 'sqliimport-error.log');
-        
+        self::logError($error);
+
         $logFileName = 'error_' . date( 'j-m-Y') . '.csv';
         $logFile = $this->tempLogDir . $logFileName;
         if ( !file_exists( $logFile ) )
