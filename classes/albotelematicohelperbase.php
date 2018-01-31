@@ -946,9 +946,7 @@ class AlbotelematicoHelperBase
      */
     protected static function checkFeedRedirect( $feed )
     {
-        if (stripos( $feed, 'http://' ) !== false){
-            return str_replace('http://', 'https://', $feed);
-        }
+        return str_replace('http://', 'https://', $feed);
 
 //        $ch = curl_init();
 //        curl_setopt( $ch, CURLOPT_URL, $feed );
@@ -991,6 +989,6 @@ class AlbotelematicoHelperBase
 //        {
 //            $feed = $redirectURL;
 //        }
-        return $feed;
+//        return $feed;
     }
 }

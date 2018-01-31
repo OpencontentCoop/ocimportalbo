@@ -114,8 +114,11 @@ class ObjectAlbotelematicoHelper extends AlbotelematicoHelperBase implements Alb
                 try
                 {
                     $feedPath = AlbotelematicoHelperBase::checkFeedRedirect( $feedPath );
-                    $xmlOptions = new SQLIXMLOptions( array( 'xml_path' => $feedPath,
-                                                             'xml_parser' => 'simplexml' ));
+                    $xmlOptions = new SQLIXMLOptions(array(
+                        'xml_path' => $feedPath,
+                        'xml_parser' => 'simplexml',
+                        'timeout' => OpenPAINI::variable('ImportAlboTelematico', 'Timeout', 35)
+                    ));
                     $parser = new AlboXMLParser( $xmlOptions );
                     $parsed = $parser->parse();
                     $index = 0;
@@ -310,8 +313,11 @@ class ObjectAlbotelematicoHelper extends AlbotelematicoHelperBase implements Alb
             $progressBar = null;
             $i = 0;
 
-            $xmlOptions = new SQLIXMLOptions( array( 'xml_path' => $feed,
-                                                     'xml_parser' => 'simplexml' ));
+            $xmlOptions = new SQLIXMLOptions(array(
+                'xml_path' => $feed,
+                'xml_parser' => 'simplexml',
+                'timeout' => OpenPAINI::variable('ImportAlboTelematico', 'Timeout', 35)
+            ));
             $parser = new SQLIXMLParser( $xmlOptions );
             $parsed = $parser->parse();
             $dataCount = (int) $parsed->atti->numero_atti;

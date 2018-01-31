@@ -201,8 +201,10 @@ class AlboImportHandler extends SQLIImportAbstractHandler implements ISQLIImport
                 if ($message == '' && $e instanceof Exception) {
                     $message = $e->getTraceAsString();
                 }
-                $error['row'] = $item['row']->asXML();
-                $error['row_id'] = $item['row']->id_atto;
+                if ($item['row']) {
+                    $error['row'] = $item['row']->asXML();
+                    $error['row_id'] = $item['row']->id_atto;
+                }
                 $error['message'] = $message;
                 $errors[] = $error;
             }
@@ -220,7 +222,13 @@ class AlboImportHandler extends SQLIImportAbstractHandler implements ISQLIImport
     public function cleanup()
     {
         if ($this->helper instanceof AlbotelematicoHelperInterface) {
-            $this->helper->cleanup();
+            try{
+                $this->helper->cleanup();
+            }catch (Exception $e){
+                AlbotelematicoHelperBase::logError($e->getMessage());
+                $this->registerMail[] = array('exception' => $e);
+            }
+
         }
         $this->sendMail();
 
