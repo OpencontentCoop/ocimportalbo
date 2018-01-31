@@ -1,6 +1,6 @@
 <?php
 
-class AlbotelematicoHelperBase
+abstract class AlbotelematicoHelperBase
 {
     const SECTION_IDENTIFIER = 'albotelematicotrentino';
 
@@ -26,9 +26,22 @@ class AlbotelematicoHelperBase
     public $classIdentifier;
     public $locations;
     public $values;
+    /**
+     * @var SQLIContent
+     */
     public $content;
     public $mapAttributes = array();
     public $currentObject;
+
+
+    /**
+     * @var array
+     */
+    protected $feeds = array();
+
+    abstract public function availableArguments();
+
+    abstract public function getClassIdentifier();
     
     public function __construct()
     {
@@ -44,6 +57,27 @@ class AlbotelematicoHelperBase
         $this->arguments = $arguments;
         $this->options = $options;
         $this->validateArguments();
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getArgumentsAsString()
+    {
+        return var_export($this->arguments, 1);
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getOptionsAsString()
+    {
+        return var_export($this->options, 1);
+    }
+
+    public function getFeedsAsString()
+    {
+        return implode(', ', $this->feeds);
     }
 
     public function hasArgument( $name )

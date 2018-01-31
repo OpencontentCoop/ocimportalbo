@@ -20,11 +20,6 @@ class ObjectAlbotelematicoHelper extends AlbotelematicoHelperBase implements Alb
     protected $dataMap;
 
     /**
-     * @var array
-     */
-    protected $feeds = array();
-
-    /**
      * @var SimpleXMLElement
      */
     public $data;

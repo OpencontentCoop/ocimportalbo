@@ -183,9 +183,9 @@ class AlboImportHandler extends SQLIImportAbstractHandler implements ISQLIImport
             $mail->addCc('lr@opencontent.it');
 
             $sitename = eZSys::hostname();
-            $arguments = var_export($this->helper->arguments, 1);
-            $options = var_export($this->helper->options, 1);
-            $feed = var_export($this->helper->feed, 1);
+            $arguments = $this->helper->getArgumentsAsString();
+            $options = $this->helper->getOptionsAsString();
+            $feed = $this->helper->getFeedsAsString();
 
             $tpl->setVariable('sitename', $sitename);
             $tpl->setVariable('arguments', $arguments);

@@ -109,4 +109,12 @@ interface AlbotelematicoHelperInterface
 
     function saveINILocations( $data );
 
+    public function getArgumentsAsString();
+
+    public function getOptionsAsString();
+
+    public function getFeedsAsString();
+
+    public function getRemoteID();
+
 }
