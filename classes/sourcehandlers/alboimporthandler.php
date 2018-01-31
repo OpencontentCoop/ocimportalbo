@@ -212,8 +212,7 @@ class AlboImportHandler extends SQLIImportAbstractHandler implements ISQLIImport
 
             $body = $tpl->fetch('design:mail_error.tpl');
             $mail->setContentType('text/html');
-            $mail->setSubject("[" . eZINI::instance()->variable('SiteSettings',
-                    'SiteName') . "] " . count($errors) . " errori {$this->getHandlerName()}");
+            $mail->setSubject(eZINI::instance()->variable('SiteSettings','SiteName') . " " . count($errors) . " errori {$this->getHandlerName()}");
             $mail->setBody($body);
             eZMailTransport::send($mail);
         }
