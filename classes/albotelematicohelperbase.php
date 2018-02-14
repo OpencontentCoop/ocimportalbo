@@ -1,6 +1,6 @@
 <?php
 
-abstract class AlbotelematicoHelperBase
+class AlbotelematicoHelperBase
 {
     const SECTION_IDENTIFIER = 'albotelematicotrentino';
 
@@ -39,9 +39,17 @@ abstract class AlbotelematicoHelperBase
      */
     protected $feeds = array();
 
-    abstract public function availableArguments();
+    public function availableArguments()
+    {
+        
+        return array():
+    }
 
-    abstract public function getClassIdentifier();
+    public function getClassIdentifier()
+    {
+        
+        return null:
+    }
     
     public function __construct()
     {
