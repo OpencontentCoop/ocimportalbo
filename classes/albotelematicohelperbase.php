@@ -42,13 +42,13 @@ class AlbotelematicoHelperBase
     public function availableArguments()
     {
         
-        return array():
+        return array();
     }
 
     public function getClassIdentifier()
     {
         
-        return null:
+        return null;
     }
     
     public function __construct()
