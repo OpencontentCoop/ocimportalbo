@@ -173,6 +173,11 @@ class AlboImportHandler extends SQLIImportAbstractHandler implements ISQLIImport
 
     public function sendMail()
     {
+        return false;
+    }
+
+    private function _sendMail()
+    {
         if (count($this->registerMail) > 0) {
             $tpl = eZTemplate::factory();
 
